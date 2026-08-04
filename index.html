@@ -3,13 +3,13 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-<title>ダックスの三軒茶屋大冒険</title>
-<meta name="description" content="ダックスフンドが三軒茶屋の街を駆けぬける横スクロールアクション。ジャーキーを集めて、ヒゲおじさんをやっつけて、ご主人を助けよう！">
+<title>フォルの三軒茶屋大冒険</title>
+<meta name="description" content="白いダックスフンドのフォルが三軒茶屋の街を駆けぬける横スクロールアクション。さらわれたご主人を助けだそう！">
 <meta name="theme-color" content="#0d1017">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="ダックス大冒険">
+<meta name="apple-mobile-web-app-title" content="フォル大冒険">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 10' shape-rendering='crispEdges'%3E%3Crect width='10' height='10' fill='%23ffcb05'/%3E%3Crect x='1' y='2' width='8' height='6' fill='%232a2018'/%3E%3Crect x='1' y='3' width='8' height='4' fill='%23a4562a'/%3E%3Crect x='0' y='4' width='10' height='2' fill='%23a4562a'/%3E%3Crect x='2' y='3' width='5' height='1' fill='%23d2803f'/%3E%3Crect x='3' y='5' width='4' height='1' fill='%237a3d1c'/%3E%3C/svg%3E">
 <style>
   * { box-sizing: border-box; }
@@ -110,15 +110,21 @@ const LEVEL_H = ROWS * T;
 
 // ================================================================= パレット
 const C = {
-  dark:'#2a2018', cream:'#f6e6c2', creamL:'#fffaee', creamD:'#d9c396',
-  ear:'#e8d2a6', earL:'#f2e0bd',
+  dark:'#2a2018',
+  // フォルは白いダックスフンド
+  cream:'#fbf7ef', creamL:'#ffffff', creamD:'#ddd4c4',
+  ear:'#efe8da', earL:'#fbf7ef',
   shirt:'#ffcb05', shirtD:'#e0ab00', white:'#ffffff', pink:'#ff8fa3',
   nose:'#1a1410', skin:'#f2c49b', skinD:'#d29a70',
   coat:'#c39a5c', coatD:'#9b7440', hat:'#2b2f3a', stache:'#33241a',
   jerky:'#a4562a', jerkyD:'#7a3d1c', jerkyL:'#d2803f',
-  hair:'#e8c46a', hairD:'#c49f45', top:'#7fb8e8', topD:'#5e93c4', skirt:'#3d4a63',
-  bossHair:'#6b4a2c', bossHairD:'#4a3120', bossStache:'#241a12',
+  // ご主人：茶髪のパーマ、肩までの長さ、カジュアル
+  hair:'#8b5e3c', hairD:'#6b4326', hairL:'#a87a4f',
+  top:'#fdf6e8', topD:'#ded3bf', denim:'#4a6a92', denimD:'#38516f',
+  shoe:'#f2efe6',
+  bossHair:'#6b4a2c', bossHairD:'#4a3120', bossHairL:'#8a6538', bossStache:'#3b2a18',
   bossCoat:'#4d4160', bossCoatD:'#332b42', bossLens:'#7186a8',
+  bossShirt:'#b8b0a0', bossShirtD:'#948c7c',
 };
 
 // ================================================================= テーマ
@@ -275,7 +281,7 @@ const HIDDEN = {
 
 // ================================================================= セーブ
 const SAVE_KEY = 'dachs-sancha-progress';
-let save = { cleared:[false,false,false], hiddenFound:false, hiddenCleared:false, best:0 };
+let save = { cleared:[false,false,false], hiddenFound:false, hiddenCleared:false, best:0, seenOpening:false };
 try {
   const raw = localStorage.getItem(SAVE_KEY);
   if (raw) save = Object.assign(save, JSON.parse(raw));
@@ -300,7 +306,7 @@ function R(x, y, w, h, color, s, ox, oy) {
   ctx.fillRect(ox + x * s, oy + y * s, w * s, h * s);
 }
 
-// ------------------------------------------------ ダックスフンド（26x16）
+// ------------------------------ 主人公：白いダックスフンドのフォル（26x16）
 function drawDog(ox, oy, s, frame, hurtFlash, rainbow) {
   const P = (x, y, w, h, c) => R(x, y, w, h, c, s, ox, oy);
   const D = hurtFlash ? '#ffffff' : C.dark;
@@ -385,81 +391,97 @@ function drawStache(ox, oy, s, frame, squashed) {
   P(9 - sw, 18, 4, 2, C.dark);
 }
 
-// ------------------------------------------------ ボス：ロン毛のヒゲおじさん（24x26）
+// -------------------- ボス：モジャモジャのロン毛で小太りのヒゲ面おじさん（28x30）
 function drawBoss(ox, oy, s, frame, flash, defeated) {
   const P = (x, y, w, h, c) => R(x, y, w, h, c, s, ox, oy);
   const F = flash ? '#ffffff' : null;
   const col = c => F || c;
+  const D = C.dark;
 
   if (defeated) {
-    P(1, 19, 22, 7, C.dark);                 // つぶれたコート
-    P(2, 20, 20, 5, col(C.bossCoat));
-    P(2, 17, 20, 3, C.dark);                 // 広がったロン毛
-    P(3, 17, 18, 2, col(C.bossHair));
-    P(8, 16, 8, 3, C.dark);
-    P(9, 16, 6, 2, C.skin);
-    P(9, 17, 6, 1, C.bossStache);
+    P(2, 22, 24, 8, D);                      // つぶれて座り込む
+    P(3, 23, 22, 6, col(C.bossCoat));
+    P(1, 19, 26, 4, D);                      // 広がったモジャ髪
+    P(2, 19, 24, 3, col(C.bossHair));
+    P(9, 17, 10, 5, D);
+    P(10, 18, 8, 2, col(C.skin));
+    P(10, 20, 8, 2, C.bossStache);
     return;
   }
 
   const sw = frame === 0 ? 0 : 1;
 
-  // --- 背後に広がるロン毛（先細りのシルエット）
-  P(6, 0, 12, 2, C.dark);
-  P(4, 1, 16, 3, C.dark);
-  P(2, 3, 20, 14, C.dark);
-  P(3, 17, 18, 3, C.dark);
-  P(5, 20, 14, 2, C.dark);
-  P(7, 1, 10, 2, col(C.bossHair));
-  P(5, 2, 14, 2, col(C.bossHair));
-  P(3, 4, 18, 12, col(C.bossHairD));
-  P(4, 16, 16, 3, col(C.bossHairD));
-  P(6, 19, 12, 2, col(C.bossHairD));
+  // ===== モジャモジャのロン毛（ギザギザのシルエット）
+  P(8, 0, 2, 3, D); P(12, 0, 2, 2, D); P(16, 0, 2, 3, D); P(19, 1, 2, 2, D); P(6, 2, 2, 2, D);
+  P(10, 1, 8, 2, D);
+  P(7, 2, 14, 2, D);
+  P(5, 3, 18, 3, D);
+  P(4, 5, 20, 4, D);
+  P(2, 8, 24, 9, D);                         // 横にふくらむ
+  P(3, 16, 22, 4, D);
+  P(2, 19, 8, 4, D);  P(18, 19, 8, 4, D);    // 毛先が左右にバラける
+  P(3, 22, 5, 3, D);  P(20, 22, 5, 3, D);
+  P(4, 24, 3, 2, D);  P(21, 24, 3, 2, D);
 
-  // --- コート
-  P(4, 15, 16, 10, C.dark);
-  P(5, 16, 14, 8, col(C.bossCoat));
-  P(5, 21, 14, 3, col(C.bossCoatD));
-  P(5, 16, 14, 1, '#8d7fa8');               // 襟
-  P(11, 16, 2, 8, col(C.bossCoatD));        // 前合わせ
+  P(11, 2, 6, 1, col(C.bossHairL));
+  P(8, 3, 12, 2, col(C.bossHair));
+  P(5, 5, 18, 4, col(C.bossHair));
+  P(3, 9, 22, 7, col(C.bossHairD));
+  P(4, 16, 20, 3, col(C.bossHairD));
+  P(3, 20, 6, 3, col(C.bossHairD));
+  P(19, 20, 6, 3, col(C.bossHairD));
+  P(4, 6, 3, 6, col(C.bossHairL));           // 光の当たる面
+  P(7, 10, 1, 8, col(C.bossHair));           // モジャ感を出す縦の筋
+  P(20, 10, 1, 8, col(C.bossHair));
+  P(5, 13, 1, 6, col(C.bossHair));
+  P(22, 13, 1, 6, col(C.bossHair));
 
-  // --- 腕
-  P(0 + sw, 16, 4, 8, C.dark);
-  P(1 + sw, 17, 2, 6, col(C.bossCoat));
-  P(20 - sw, 16, 4, 8, C.dark);
-  P(21 - sw, 17, 2, 6, col(C.bossCoat));
+  // ===== からだ（小太り：樽型でお腹が出ている）
+  P(5, 18, 18, 11, D);
+  P(3, 21, 22, 7, D);                        // お腹のふくらみ
+  P(6, 19, 16, 9, col(C.bossCoat));
+  P(4, 22, 20, 5, col(C.bossCoat));
+  P(4, 25, 20, 2, col(C.bossCoatD));
+  P(6, 19, 16, 1, '#8d7fa8');                // 襟
+  P(11, 20, 6, 8, col(C.bossShirt));         // はだけたシャツから腹がのぞく
+  P(11, 25, 6, 3, col(C.bossShirtD));
+  P(10, 20, 1, 8, col(C.bossCoatD));
+  P(17, 20, 1, 8, col(C.bossCoatD));
 
-  // --- 足
-  P(5 + sw, 24, 6, 2, C.dark);
-  P(13 - sw, 24, 6, 2, C.dark);
+  // ===== 腕（短くて太い）
+  P(0 + sw, 19, 5, 8, D);
+  P(1 + sw, 20, 3, 6, col(C.bossCoat));
+  P(23 - sw, 19, 5, 8, D);
+  P(24 - sw, 20, 3, 6, col(C.bossCoat));
 
-  // --- 顔
-  P(6, 3, 12, 14, C.dark);
-  P(7, 4, 10, 12, col(C.skin));
-  P(7, 15, 10, 1, col(C.skinD));
-  P(7, 4, 10, 2, col(C.bossHair));          // 前髪
+  // ===== 足（短い）
+  P(7 + sw, 28, 6, 2, D);
+  P(15 - sw, 28, 6, 2, D);
 
-  // --- サングラス
-  P(6, 6, 12, 3, C.dark);
-  P(7, 6, 4, 2, C.bossLens);
-  P(13, 6, 4, 2, C.bossLens);
-  P(7, 6, 1, 1, '#cfe0f5');
+  // ===== 顔
+  P(8, 4, 12, 14, D);
+  P(9, 5, 10, 12, col(C.skin));
+  P(9, 15, 10, 2, col(C.skinD));
+  P(8, 4, 12, 3, col(C.bossHair));           // 前髪
+  P(13, 7, 2, 1, col(C.bossHair));
 
-  // --- 鼻
-  P(11, 9, 2, 2, col(C.skinD));
+  P(9, 7, 4, 2, C.bossStache);               // 太い眉
+  P(15, 7, 4, 2, C.bossStache);
+  P(10, 9, 2, 2, C.nose);                    // 目
+  P(16, 9, 2, 2, C.nose);
+  P(10, 9, 1, 1, C.white);
+  P(16, 9, 1, 1, C.white);
+  P(12, 10, 4, 3, D);                        // 団子鼻
+  P(12, 10, 4, 2, col(C.skinD));
 
-  // --- でかい口ヒゲ（あごは残す）
-  P(7, 11, 10, 3, C.bossStache);
-  P(6, 12, 1, 2, C.bossStache);
-  P(17, 12, 1, 2, C.bossStache);
-
-  // --- 顔の横に垂れるロン毛
-  P(2, 4, 5, 16, C.dark);
-  P(3, 5, 3, 14, col(C.bossHair));
-  P(3, 5, 3, 4, col(C.bossHairD));
-  P(17, 4, 5, 16, C.dark);
-  P(18, 5, 3, 14, col(C.bossHair));
-  P(18, 5, 3, 4, col(C.bossHairD));
+  // ===== ヒゲ面（口ヒゲとあごヒゲがつながってモジャモジャ）
+  P(7, 12, 14, 8, D);
+  P(8, 13, 12, 6, C.bossStache);
+  P(10, 19, 8, 3, D);
+  P(10, 19, 8, 2, C.bossStache);
+  P(12, 14, 4, 1, '#5b3a2a');                // 口
+  P(9, 12, 2, 2, col(C.skin));               // ほおの肌を少し残す
+  P(17, 12, 2, 2, col(C.skin));
 }
 
 // ------------------------------------------------ ジャーキー（10x8）
@@ -476,23 +498,67 @@ function drawJerky(ox, oy, s) {
 // ------------------------------------------------ ご主人（14x26）
 function drawOwner(ox, oy, s, wave) {
   const P = (x, y, w, h, c) => R(x, y, w, h, c, s, ox, oy);
-  P(2, 0, 10, 12, C.hairD);
-  P(2, 1, 10, 9, C.hair);
-  P(3, 3, 8, 7, C.skin);
-  P(4, 5, 2, 2, C.nose);
-  P(8, 5, 2, 2, C.nose);
-  P(6, 8, 3, 1, C.pink);
-  P(1, 8, 2, 6, C.hair);
-  P(11, 8, 2, 6, C.hair);
-  P(3, 12, 8, 8, C.top);
-  P(3, 18, 8, 2, C.topD);
-  P(1, 13, 2, 5, C.top);
-  const ay = wave ? 9 : 13;
-  P(11, ay, 2, 5, C.top);
-  P(11, ay - 2, 2, 2, C.skin);
-  P(3, 20, 8, 4, C.skirt);
-  P(4, 24, 2, 2, C.dark);
-  P(8, 24, 2, 2, C.dark);
+  const D = C.dark;
+
+  // ---- 髪（茶色のパーマ）うしろのボリューム
+  P(5, 0, 6, 2, D);
+  P(3, 1, 10, 2, D);
+  P(1, 3, 14, 12, D);
+  P(2, 4, 12, 11, C.hair);
+  P(4, 2, 8, 2, C.hair);
+  P(5, 1, 6, 1, C.hairL);
+  P(2, 5, 3, 7, C.hairL);              // 光の当たる面
+
+  // ---- からだ（カジュアル：白Tシャツ＋デニム）
+  P(2, 14, 12, 9, D);                  // Tシャツ
+  P(3, 15, 10, 7, C.top);
+  P(3, 20, 10, 2, C.topD);
+  P(6, 15, 4, 1, C.topD);              // えり
+  P(3, 21, 10, 1, C.hairD);            // すそのライン
+
+  P(3, 22, 10, 6, D);                  // デニム
+  P(4, 23, 8, 4, C.denim);
+  P(4, 26, 8, 1, C.denimD);
+  P(7, 23, 1, 4, C.denimD);
+  P(2, 27, 5, 2, D);                   // スニーカー
+  P(2, 27, 5, 1, C.shoe);
+  P(9, 27, 5, 2, D);
+  P(9, 27, 5, 1, C.shoe);
+
+  // ---- 顔
+  P(3, 3, 10, 11, D);
+  P(4, 4, 8, 9, C.skin);
+  P(4, 12, 8, 1, C.skinD);
+  P(5, 7, 2, 2, C.nose);
+  P(9, 7, 2, 2, C.nose);
+  P(6, 7, 1, 1, C.white);
+  P(10, 7, 1, 1, C.white);
+  P(4, 9, 1, 1, C.pink);
+  P(11, 9, 1, 1, C.pink);
+  P(7, 10, 2, 1, C.pink);
+
+  // ---- 前髪とサイドの毛先（肩までのパーマ、毛先をでこぼこに）
+  P(4, 4, 8, 2, C.hair);
+  P(5, 6, 2, 1, C.hair);
+  P(9, 6, 2, 1, C.hair);
+  P(1, 6, 3, 10, D);  P(1, 7, 2, 9, C.hair);
+  P(12, 6, 3, 10, D); P(13, 7, 2, 9, C.hair);
+  P(1, 16, 3, 2, D);  P(1, 16, 2, 1, C.hairD);   // 左の毛先カール
+  P(2, 17, 2, 2, D);  P(2, 17, 1, 1, C.hairD);
+  P(12, 16, 3, 2, D); P(13, 16, 2, 1, C.hairD);  // 右の毛先カール
+  P(12, 17, 2, 2, D); P(13, 17, 1, 1, C.hairD);
+
+  // ---- 腕（髪より手前。半袖なので前腕は肌色）
+  P(0, 15, 3, 4, D); P(0, 16, 2, 3, C.top);
+  P(0, 18, 3, 6, D); P(0, 18, 2, 5, C.skin);
+  if (wave) {                                    // 手をふる
+    P(13, 14, 3, 4, D); P(14, 15, 2, 3, C.top);
+    P(14, 9, 2, 7, D);  P(14, 10, 2, 6, C.skin);
+    P(13, 6, 3, 4, D);  P(14, 7, 2, 3, C.skin);
+  } else {
+    P(13, 15, 3, 4, D); P(14, 16, 2, 3, C.top);
+    P(13, 18, 3, 6, D); P(14, 18, 2, 5, C.skin);
+  }
 }
 
 // ------------------------------------------------ マンホール
@@ -819,6 +885,10 @@ cv.addEventListener('pointerdown', e => {
   const r = cv.getBoundingClientRect();
   const x = (e.clientX - r.left) * (VW / r.width);
   const y = (e.clientY - r.top) * (VH / r.height);
+  if (state === 'title') {
+    const b = OPENING_BTN;
+    if (x >= b.x && x <= b.x + b.w && y >= b.y && y <= b.y + b.h) { startStory(); return; }
+  }
   if (state === 'select') {
     const list = selectableStages();
     const cw = 190, gap = 18;
@@ -896,9 +966,9 @@ function loadStage(def, index) {
     else if (ch === 'E') enemies.push({ x:c*T, y:r*T-4, w:28, h:34, vx:-1.1, vy:0,
                                         onGround:false, hitWall:false, dead:0, alive:true });
     else if (ch === 'J') jerkies.push({ x:c*T+6, y:r*T+8, w:20, h:16, got:false, ph:(c*7+r*13)%60 });
-    else if (ch === 'G') owner = { x:c*T+2, y:r*T-20, w:28, h:52 };
+    else if (ch === 'G') owner = { x:c*T, y:r*T-26, w:32, h:58 };
     else if (ch === 'M') manholes.push({ x:c*T, y:r*T, w:32, h:32 });
-    else if (ch === 'X') boss = { x:c*T, y:r*T-46, w:56, h:74, vx:1.4, vy:0, onGround:false,
+    else if (ch === 'X') boss = { x:c*T, y:r*T-48, w:64, h:80, vx:1.4, vy:0, onGround:false,
                                   hitWall:false, hp:3, inv:0, alive:true, jumpCd:110, dead:0 };
   }
   stageJerky = jerkies.length;
@@ -1143,7 +1213,7 @@ function drawWorld() {
   if (owner && !(owner.x + 140 < cam || owner.x - 140 > cam + VW)) {
     const locked = boss && boss.alive;
     if (!locked) {
-      const gx = ox + owner.x + 14, gy = owner.y + 26, rad = 70 + Math.sin(tick * 0.06) * 8;
+      const gx = ox + owner.x + 16, gy = owner.y + 30, rad = 70 + Math.sin(tick * 0.06) * 8;
       const glow = ctx.createRadialGradient(gx, gy, 8, gx, gy, rad);
       glow.addColorStop(0, 'rgba(255,236,170,0.55)');
       glow.addColorStop(0.6, 'rgba(255,225,140,0.18)');
@@ -1153,7 +1223,7 @@ function drawWorld() {
     drawOwner(ox + owner.x, owner.y, 2, Math.floor(tick / 22) % 2 === 0);
     ctx.fillStyle = locked ? '#ffffff' : C.dark;
     ctx.font = 'bold 14px sans-serif'; ctx.textAlign = 'center';
-    ctx.fillText(locked ? 'たすけて！' : 'ご主人！', ox + owner.x + 14, owner.y - 14);
+    ctx.fillText(locked ? 'たすけて！' : 'ご主人！', ox + owner.x + 16, owner.y - 12);
   }
 
   for (const e of enemies) {
@@ -1170,8 +1240,8 @@ function drawWorld() {
     const f = Math.floor(tick / 8) % 2;
     const flash = boss.inv > 0 && Math.floor(tick / 4) % 2 === 0;
     ctx.save();
-    if (boss.vx > 0) { ctx.translate(ox + boss.x + boss.w + 8, boss.y - 4); ctx.scale(-1, 1); drawBoss(0, 0, 3, f, flash, !boss.alive); }
-    else drawBoss(ox + boss.x - 8, boss.y - 4, 3, f, flash, !boss.alive);
+    if (boss.vx > 0) { ctx.translate(ox + boss.x + boss.w + 10, boss.y - 10); ctx.scale(-1, 1); drawBoss(0, 0, 3, f, flash, !boss.alive); }
+    else drawBoss(ox + boss.x - 10, boss.y - 10, 3, f, flash, !boss.alive);
     ctx.restore();
   }
 
@@ -1306,21 +1376,31 @@ function drawTitle() {
   drawDog(VW / 2 - 150, 96, 4, Math.floor(tick / 14) % 2, false, false);
   drawOwner(VW / 2 + 86, 96, 3, Math.floor(tick / 22) % 2 === 0);
 
-  ctx.fillStyle = 'rgba(16,14,20,0.62)'; ctx.fillRect(0, 262, VW, 170);
+  ctx.fillStyle = 'rgba(16,14,20,0.62)'; ctx.fillRect(0, 256, VW, 190);
   ctx.textAlign = 'center';
   ctx.fillStyle = '#ffcb05';
   ctx.font = 'bold 42px "Hiragino Maru Gothic ProN", sans-serif';
-  ctx.fillText('ダックスの三軒茶屋大冒険', VW / 2, 300);
+  ctx.fillText('フォルの三軒茶屋大冒険', VW / 2, 296);
   ctx.fillStyle = '#ffffff';
   ctx.font = '17px "Hiragino Maru Gothic ProN", sans-serif';
-  ctx.fillText('ジャーキーを集めて、ヒゲおじさんをやっつけて、ご主人を助けよう！', VW / 2, 334);
+  ctx.fillText('さらわれたご主人を助けだせ！ 白いダックスフンド・フォルの大冒険', VW / 2, 328);
   ctx.fillStyle = Math.floor(tick / 25) % 2 ? '#7fe08a' : '#ffffff';
   ctx.font = 'bold 20px "Hiragino Maru Gothic ProN", sans-serif';
-  ctx.fillText(K('Space キーでスタート', '画面をタップしてスタート'), VW / 2, 380);
+  ctx.fillText(K('Space キーでスタート', '画面をタップしてスタート'), VW / 2, 370);
+
+  // オープニングを見るボタン
+  const b = OPENING_BTN;
+  ctx.fillStyle = 'rgba(255,255,255,0.10)'; ctx.fillRect(b.x, b.y, b.w, b.h);
+  ctx.strokeStyle = 'rgba(255,255,255,0.4)'; ctx.lineWidth = 1.5;
+  ctx.strokeRect(b.x + 0.5, b.y + 0.5, b.w, b.h);
+  ctx.fillStyle = 'rgba(255,255,255,0.85)';
+  ctx.font = '14px "Hiragino Maru Gothic ProN", sans-serif';
+  ctx.fillText(K('▶ オープニングを見る（O キー）', '▶ オープニングを見る'), VW / 2, b.y + 21);
+
   if (save.best > 0) {
     ctx.fillStyle = 'rgba(255,255,255,0.7)';
     ctx.font = '14px "Hiragino Maru Gothic ProN", sans-serif';
-    ctx.fillText('ベストスコア ' + save.best, VW / 2, 412);
+    ctx.fillText('ベストスコア ' + save.best, VW / 2, 456);
   }
 }
 
@@ -1411,13 +1491,187 @@ function drawSelect() {
   }
 }
 
+// ================================================================= オープニング
+let storyIdx = 0, storyTick = 0;
+const GY = 11 * T;                       // 字幕に隠れないよう地面を高めにとる
+
+function storyStage(camX, dark) {
+  TH = THEMES.evening;
+  curStage = null;
+  drawBackground(camX);
+  for (let c = 0; c <= VW / T; c++)
+    for (let r = 11; r <= 14; r++) drawTile('#', c * T, r * T);
+  if (dark) { ctx.fillStyle = 'rgba(24,16,34,' + dark + ')'; ctx.fillRect(0, 0, VW, VH); }
+}
+
+function leash(x1, y1, x2, y2, slack) {
+  ctx.strokeStyle = '#c85a3a'; ctx.lineWidth = 3; ctx.lineCap = 'round';
+  ctx.beginPath();
+  ctx.moveTo(x1, y1);
+  ctx.quadraticCurveTo((x1 + x2) / 2, Math.max(y1, y2) + (slack || 26), x2, y2);
+  ctx.stroke();
+}
+
+function speech(x, y, text, color) {
+  ctx.font = 'bold 18px "Hiragino Maru Gothic ProN", sans-serif';
+  ctx.textAlign = 'center';
+  const w = ctx.measureText(text).width + 30;
+  ctx.fillStyle = '#2a2018'; ctx.fillRect(x - w / 2 - 3, y - 31, w + 6, 38);
+  ctx.fillStyle = '#fffaf0'; ctx.fillRect(x - w / 2, y - 28, w, 32);
+  ctx.fillStyle = '#2a2018'; ctx.fillRect(x - 5, y + 4, 10, 9);
+  ctx.fillStyle = color || '#2a2018';
+  ctx.fillText(text, x, y - 6);
+}
+
+const STORY = [
+{ lines: ['いつもの夕方。', 'フォルはご主人といっしょに、三軒茶屋をおさんぽしていた。'],
+  draw(t) {
+    storyStage(200);
+    drawCarrotTower(60, GY, 0.7);
+    drawIzakaya(600, GY, 0.8);
+    const b = Math.floor(t / 15) % 2;
+    drawOwner(480, GY - 112, 4, false);
+    drawDog(270, GY - 64 - b * 3, 4, b, false, false);
+    leash(486, GY - 26, 356, GY - 52);
+  } },
+
+{ lines: ['「フォル、きょうはジャーキー買って帰ろっか」', '——フォルの、いちばん好きな時間。'],
+  draw(t) {
+    storyStage(120);
+    drawEchoGate(300, GY, 0.9);
+    const b = Math.floor(t / 8) % 2;
+    drawOwner(480, GY - 112, 4, true);
+    drawDog(270, GY - 64, 4, b, false, false);
+    leash(486, GY - 26, 356, GY - 52);
+    drawJerky(300, GY - 130 + Math.sin(t * 0.12) * 6, 5);
+    speech(470, GY - 130, 'ジャーキー買って帰ろっか');
+  } },
+
+{ lines: ['そのとき、路地のおくから', '——怪しい影が、三つ。'],
+  draw(t) {
+    storyStage(120, 0.34);
+    drawEchoGate(240, GY, 0.9);
+    drawOwner(360, GY - 112, 4, false);
+    drawDog(160, GY - 64, 4, 0, false, false);
+    leash(366, GY - 26, 246, GY - 52);
+    const step = Math.min(1, t / 70);
+    const f = Math.floor(t / 9) % 2;
+    for (let i = 0; i < 3; i++) {
+      const x = VW + 60 - step * (230 + i * 84);
+      ctx.save();
+      ctx.translate(x + 64, GY - 80); ctx.scale(-1, 1);
+      drawStache(0, 0, 4, f, false);
+      ctx.restore();
+    }
+    if (t > 60) speech(370, GY - 130, 'えっ…？');
+  } },
+
+{ lines: ['「フォル——！」', 'ご主人は、ヒゲの男たちに連れていかれてしまった。'],
+  draw(t) {
+    storyStage(120, 0.44);
+    drawEchoGate(180, GY, 0.9);
+    const run = Math.min(1, t / 90);
+    const gx = 400 + run * 380;
+    const f = Math.floor(t / 7) % 2;
+    drawStache(gx - 130, GY - 80, 4, 1 - f, false);          // 仲間
+    drawStache(gx, GY - 80, 4, f, false);                    // ご主人をかつぐ男
+    ctx.save();
+    ctx.translate(gx + 30, GY - 104);
+    ctx.rotate(-1.35);
+    drawOwner(-32, -34, 4, false);
+    ctx.restore();
+    ctx.strokeStyle = '#c85a3a'; ctx.lineWidth = 4; ctx.lineCap = 'round';
+    ctx.beginPath(); ctx.moveTo(250, GY - 5);                // 落ちたリード
+    ctx.quadraticCurveTo(300, GY - 24, 360, GY - 4); ctx.stroke();
+    drawDog(130, GY - 64, 4, 0, false, false);               // 見上げるフォル
+    if (t > 20) speech(gx + 40, GY - 190, 'フォル——！', '#c0392b');
+  } },
+
+{ lines: ['落ちたリードをくわえて、', 'フォルは短い足で、夕暮れの街へ駆けだした。'],
+  draw(t) {
+    storyStage(120 + t * 2);
+    drawCarrotTower(620, GY, 0.7);
+    const f = Math.floor(t / 6) % 2;
+    drawDog(280, GY - 64 - (f ? 5 : 0), 4, f, false, false);
+    for (let i = 0; i < 7; i++) {                            // 砂ぼこり
+      const p = (t * 3.5 + i * 24) % 150;
+      ctx.fillStyle = 'rgba(240,220,190,' + Math.max(0, 0.6 - p / 220) + ')';
+      const s = 6 + p / 12;
+      ctx.fillRect(272 - p, GY - 12 - (i % 3) * 9, s, s);
+    }
+    speech(400, GY - 120, 'まっててね、ご主人！', '#b8541f');
+  } },
+
+{ lines: ['フォルの三軒茶屋大冒険が、いま始まる。'],
+  draw(t) {
+    storyStage(300);
+    drawCarrotTower(110, GY, 0.75);
+    drawGorillaBuilding(640, GY, 0.8);
+    ctx.fillStyle = 'rgba(16,14,20,0.42)'; ctx.fillRect(0, 0, VW, VH);
+    drawDog(VW / 2 - 130, 120, 5, Math.floor(t / 14) % 2, false, false);
+    ctx.textAlign = 'center';
+    ctx.fillStyle = '#ffcb05';
+    ctx.font = 'bold 46px "Hiragino Maru Gothic ProN", sans-serif';
+    ctx.fillText('フォルの三軒茶屋大冒険', VW / 2, 290);
+  } },
+];
+
+function drawStory() {
+  const sc = STORY[storyIdx];
+  sc.draw(storyTick);
+
+  // 字幕
+  const h = 34 + sc.lines.length * 27;
+  ctx.fillStyle = 'rgba(16,14,20,0.82)';
+  ctx.fillRect(0, VH - h, VW, h);
+  ctx.fillStyle = '#ffcb05'; ctx.fillRect(0, VH - h, VW, 3);
+  ctx.textAlign = 'center';
+  ctx.fillStyle = '#ffffff';
+  ctx.font = '19px "Hiragino Maru Gothic ProN", sans-serif';
+  sc.lines.forEach((l, i) => ctx.fillText(l, VW / 2, VH - h + 30 + i * 27));
+
+  if (Math.floor(tick / 22) % 2) {
+    ctx.fillStyle = '#7fe08a';
+    ctx.font = 'bold 15px "Hiragino Maru Gothic ProN", sans-serif';
+    ctx.fillText('▼', VW - 34, VH - 14);
+  }
+  ctx.fillStyle = 'rgba(255,255,255,0.5)';
+  ctx.font = '12px "Hiragino Maru Gothic ProN", sans-serif';
+  ctx.textAlign = 'left';
+  ctx.fillText(K('Space でつぎへ　／　Esc でスキップ', 'タップでつぎへ　／　「もどる」でスキップ'), 14, VH - 14);
+
+  // 進行度
+  ctx.textAlign = 'right';
+  ctx.fillText((storyIdx + 1) + ' / ' + STORY.length, VW - 54, VH - 14);
+}
+
+function startStory() { storyIdx = 0; storyTick = 0; state = 'story'; }
+function endStory() { save.seenOpening = true; persist(); state = 'select'; selIdx = 0; }
+
+// タイトル画面の「オープニングを見る」ボタン
+const OPENING_BTN = { x: VW / 2 - 118, y: 398, w: 236, h: 32 };
+
 // ================================================================= ループ
 function loop() {
   tick++;
 
   if (state === 'title') {
     drawTitle();
-    if (justPressed('Space', 'Enter', 'ArrowUp')) { state = 'select'; selIdx = 0; }
+    if (justPressed('KeyO')) startStory();
+    else if (justPressed('Space', 'Enter', 'ArrowUp')) {
+      // 初回はオープニングを見せる
+      if (!save.seenOpening) startStory();
+      else { state = 'select'; selIdx = 0; }
+    }
+
+  } else if (state === 'story') {
+    storyTick++;
+    drawStory();
+    if (justPressed('Escape')) endStory();
+    else if (justPressed('Space', 'Enter', 'ArrowUp')) {
+      storyIdx++; storyTick = 0;
+      if (storyIdx >= STORY.length) endStory(); else SFX.jump();
+    }
 
   } else if (state === 'select') {
     drawSelect();
