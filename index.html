@@ -1,0 +1,1488 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ダックスの三軒茶屋大冒険</title>
+<style>
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0; padding: 0; height: 100%;
+    background: #0d1017;
+    font-family: "Hiragino Maru Gothic ProN", "Hiragino Sans", "Yu Gothic", sans-serif;
+    overflow: hidden;
+    -webkit-user-select: none; user-select: none;
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+  }
+  #wrap { height:100%; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:10px; }
+  #stage { position: relative; line-height: 0; width: min(96vw, 150vh); }
+  canvas {
+    display: block; width: 100%; height: auto;
+    image-rendering: pixelated; image-rendering: crisp-edges;
+    background: #7ec8f2;
+    border: 4px solid #2a2018; border-radius: 6px;
+    box-shadow: 0 12px 40px rgba(0,0,0,0.6);
+  }
+  #hint { color:#8f9bb3; font-size:13px; letter-spacing:1px; text-align:center; padding:0 10px; }
+  #hint b { color:#ffcb05; }
+
+  /* ---------------- スマホ用タッチ操作 ---------------- */
+  #touch, #backBtn, #rotate { display: none; }
+  body.touch #touch { display: flex; }
+  body.touch #backBtn { display: block; }
+  body.touch #hint { display: none; }
+  body.touch #stage { width: min(100vw, 152vh); }
+
+  #touch {
+    position: fixed; left: 0; right: 0; bottom: 0; z-index: 10;
+    padding: 10px 16px calc(12px + env(safe-area-inset-bottom, 0px));
+    justify-content: space-between; align-items: flex-end;
+    pointer-events: none;
+  }
+  #touch .group { display: flex; gap: 14px; align-items: flex-end; pointer-events: auto; }
+  #touch button {
+    -webkit-appearance: none; appearance: none;
+    width: 68px; height: 68px; border-radius: 50%;
+    border: 2px solid rgba(255,255,255,0.45);
+    background: rgba(30,28,38,0.55);
+    color: #fff; font-size: 26px; font-weight: bold;
+    font-family: inherit; line-height: 1;
+    display: flex; align-items: center; justify-content: center;
+    touch-action: none;
+  }
+  #touch button.jump {
+    width: 92px; height: 92px; font-size: 15px;
+    background: rgba(76,170,100,0.5); border-color: rgba(180,255,200,0.65);
+  }
+  #touch button.down { width: 56px; height: 56px; font-size: 20px; }
+  #touch button.on { background: rgba(255,203,5,0.6); border-color: #ffcb05; color: #2a2018; }
+  #backBtn {
+    position: fixed; top: 8px; right: 10px; z-index: 11;
+    -webkit-appearance: none; appearance: none;
+    padding: 9px 15px; border-radius: 14px; font-family: inherit;
+    border: 2px solid rgba(255,255,255,0.35); background: rgba(30,28,38,0.62);
+    color: #fff; font-size: 13px; touch-action: none;
+  }
+  #rotate {
+    position: fixed; bottom: 118px; left: 0; right: 0; z-index: 9;
+    text-align: center; color: #ffcb05; font-size: 13px;
+    text-shadow: 0 2px 6px #000; pointer-events: none;
+  }
+  @media (orientation: portrait) { body.touch #rotate { display: block; } }
+</style>
+</head>
+<body>
+<div id="wrap">
+  <div id="stage"><canvas id="game" width="900" height="480"></canvas></div>
+  <div id="hint">← → <b>移動</b> ／ Space・↑ <b>ジャンプ</b>（長押しで高く） ／ ↓ <b>しらべる</b> ／ R <b>やり直し</b></div>
+</div>
+
+<div id="rotate">📱 よこ向きにすると遊びやすいよ</div>
+<button id="backBtn" data-k="Escape">もどる</button>
+<div id="touch">
+  <div class="group">
+    <button data-k="ArrowLeft" aria-label="ひだり">◀</button>
+    <button data-k="ArrowRight" aria-label="みぎ">▶</button>
+  </div>
+  <div class="group">
+    <button class="down" data-k="ArrowDown" aria-label="しらべる">▼</button>
+    <button class="jump" data-k="Space" aria-label="ジャンプ">ジャンプ</button>
+  </div>
+</div>
+
+<script>
+"use strict";
+
+const cv = document.getElementById('game');
+const ctx = cv.getContext('2d');
+ctx.imageSmoothingEnabled = false;
+
+const T = 32, VW = cv.width, VH = cv.height, ROWS = 15;
+const LEVEL_H = ROWS * T;
+
+// ================================================================= パレット
+const C = {
+  dark:'#2a2018', cream:'#f6e6c2', creamL:'#fffaee', creamD:'#d9c396',
+  ear:'#e8d2a6', earL:'#f2e0bd',
+  shirt:'#ffcb05', shirtD:'#e0ab00', white:'#ffffff', pink:'#ff8fa3',
+  nose:'#1a1410', skin:'#f2c49b', skinD:'#d29a70',
+  coat:'#c39a5c', coatD:'#9b7440', hat:'#2b2f3a', stache:'#33241a',
+  jerky:'#a4562a', jerkyD:'#7a3d1c', jerkyL:'#d2803f',
+  hair:'#e8c46a', hairD:'#c49f45', top:'#7fb8e8', topD:'#5e93c4', skirt:'#3d4a63',
+  bossHair:'#6b4a2c', bossHairD:'#4a3120', bossStache:'#241a12',
+  bossCoat:'#4d4160', bossCoatD:'#332b42', bossLens:'#7186a8',
+};
+
+// ================================================================= テーマ
+const THEMES = {
+  day: {
+    sky:['#5ab4ec','#9ed8f5','#dff0d0'],
+    bldg:['#8ea3bd','#7d92ae'], bldgTop:['#9fb3ca','#8b9fba'],
+    win:'rgba(255,240,180,0.5)', tree:['#4f8f47','#61a557','#3f7a3a'],
+    cloud:'rgba(255,255,255,0.85)',
+    ground:['#8f7d64','#7a6a55','#5d5040','#4a4034'],
+    haze:null,
+  },
+  evening: {
+    sky:['#e8613f','#f7ad5e','#ffe0a8'],
+    bldg:['#5b4566','#42314d'], bldgTop:['#755c80','#573f63'],
+    win:'rgba(255,222,140,0.9)', tree:['#3f6b45','#4d7d50','#33583a'],
+    cloud:'rgba(255,215,180,0.8)',
+    ground:['#7c6350','#695444','#4d3f33','#3b3128'],
+    haze:'rgba(255,130,60,0.05)',
+  },
+  night: {
+    sky:['#0d1730','#1c2f57','#3a5580'],
+    bldg:['#2b3a58','#22304a'], bldgTop:['#38496b','#2c3b59'],
+    win:'rgba(255,226,150,0.95)', tree:['#264a2e','#2f5c37','#1d3a24'],
+    cloud:'rgba(180,200,235,0.35)',
+    ground:['#4a4458','#3c3748','#2a2634','#1f1c26'],
+    haze:'rgba(40,60,120,0.18)',
+  },
+  under: {
+    sky:['#150f0e','#241b18','#3a2b23'],
+    bldg:['#2e241f','#261d19'], bldgTop:['#3a2e27','#302620'],
+    win:'rgba(255,190,110,0.35)', tree:['#33452e','#3f5637','#26331f'],
+    cloud:'rgba(90,75,65,0.25)',
+    ground:['#5a4b40','#4a3d34','#332a24','#241d19'],
+    haze:'rgba(0,0,0,0.22)',
+  },
+};
+
+// ================================================================= ステージ
+// . 空  # 地面  = 木の足場  B 木箱  J ジャーキー  E ヒゲおじさん
+// P 開始  G ご主人（ゴール）  M マンホール（隠しステージ入口）  X ボス
+const STAGES = [
+{
+  name: '① エコー仲見世商店街', theme: 'day',
+  landmarks: [ {t:'echo', col:16}, {t:'carrot', col:62}, {t:'izakaya', col:104}, {t:'carrot', col:140} ],
+  chunks: [
+  [ '..............................','..............................','..............................',
+    '..............................','..............................','..............................',
+    '..............................','..............................','..............................',
+    '.....................JJ.......','....................====......','..........JJ......JJ..........',
+    '...P..........................','##############################','##############################' ],
+  [ '..............................','..............................','..............................',
+    '..............................','..............................','..............................',
+    '..............................','..............................','..............................',
+    '..........JJJ.................','.........=====................','....................JJ........',
+    '.....E..............E.........','########....##################','########....##################' ],
+  [ '..............................','..............................','..............................',
+    '..............................','..............................','..............................',
+    '..............................','..............................','..............................',
+    '..............JJJ.............','............=======...........','......JJ..............BB......',
+    '.......................E....M.','##############################','##############################' ],
+  [ '..............................','..............................','..............................',
+    '..............................','..............................','..............................',
+    '..............................','..............................','..............................',
+    '......JJ..........JJ..........','.....=====.......=====........','..............................',
+    '...............E..............','#####.....########.....#######','#####.....########.....#######' ],
+  [ '..............................','..............................','..............................',
+    '..............................','..............................','..............................',
+    '..............................','..............................','......JJJJ....................',
+    '.....======...................','..............E...............','...................JJJJJ..G...',
+    '.........................###..','##############################','##############################' ],
+  ]
+},
+{
+  name: '② 茶沢通りとゴリラビル', theme: 'evening',
+  landmarks: [ {t:'gorilla', col:26}, {t:'tram', col:70}, {t:'izakaya', col:96}, {t:'carrot', col:128} ],
+  chunks: [
+  [ '..............................','..............................','..............................',
+    '..............................','..............................','..............................',
+    '..............................','..............................','..................JJ..........',
+    '.................====.........','..........JJ..................','.........====.................',
+    '...P.................E........','##############################','##############################' ],
+  [ '..............................','..............................','..............................',
+    '..............................','..............................','..............................',
+    '..............................','..............................','..............................',
+    '.....JJ..........JJJ..........','....=====.......=====.........','.........................JJ...',
+    '....................E.........','###.....######.....###########','###.....######.....###########' ],
+  [ '..............................','..............................','..............................',
+    '..............................','..............................','..............................',
+    '..............JJ..............','.............=====............','..........JJ..................',
+    '.........=====................','.....JJ..............JJ.......','....=====...........====......',
+    '.........E...............E....','##############################','##############################' ],
+  [ '..............................','..............................','..............................',
+    '..............................','..............................','..............................',
+    '..............................','..............................','..............................',
+    '.......JJ.........JJ..........','......=====......=====........','..............................',
+    '..........E..........E........','####......####......##########','####......####......##########' ],
+  [ '..............................','..............................','..............................',
+    '..............................','..............................','..............................',
+    '..............................','..............................','.......JJJJ...................',
+    '......======..................','..............E......E........','...................JJJJ...G...',
+    '.........................###..','##############################','##############################' ],
+  ]
+},
+{
+  name: '③ キャロットタワー最上階', theme: 'night', boss: true,
+  landmarks: [ {t:'carrotBig', col:30}, {t:'carrotBig', col:96}, {t:'gorilla', col:66} ],
+  chunks: [
+  [ '..............................','..............................','..............................',
+    '..............................','..............................','..............................',
+    '..............................','..............................','.................JJ...........',
+    '................====..........','.........JJ...................','........=====.................',
+    '...P....................E.....','##############################','##############################' ],
+  [ '..............................','..............................','..............................',
+    '..............................','..............................','..............................',
+    '................JJ............','...............=====..........','.......JJ.....................',
+    '......=====...................','..................JJ..........','.................=====........',
+    '.........E..........E.........','####.....#####.....###########','####.....#####.....###########' ],
+  [ '..............................','..............................','..............................',
+    '..............................','..............................','..............................',
+    '.........JJJ..................','........=====.................','.....................JJ.......',
+    '....................=====.....','..........JJ..................','.........=====.......BB.......',
+    '.....E..........E.........E...','##############################','##############################' ],
+  [ '..............................','..............................','..............................',
+    '..............................','..............................','..............................',
+    '..............................','..............................','..............................',
+    '.....JJ.......................','....=====.....................','.........................G....',
+    '.................X.......###..','##############################','##############################' ],
+  ]
+},
+];
+
+const HIDDEN = {
+  name: '★ 地下のひみつ通路', theme: 'under', hidden: true,
+  landmarks: [],
+  chunks: [
+  [ '..............................','..............................','..............................',
+    '..............................','..............................','..............................',
+    '..............................','..............................','..........JJJJJJ..............',
+    '.........========.............','....JJJJJJ...........JJJJ.....','...========.........======....',
+    '..P...........................','##############################','##############################' ],
+  [ '..............................','..............................','..............................',
+    '..............................','..............................','..............................',
+    '..............................','..............................','.......JJJJJJ.................',
+    '......========................','.....................JJJJJ....','..JJJJ..............=======...',
+    '.......E..............E.......','##############################','##############################' ],
+  [ '..............................','..............................','..............................',
+    '..............................','..............................','..............................',
+    '..............................','..............................','.....JJJJJJJJ.................',
+    '....==========................','..........................JJ..','.................JJJJJ........',
+    '.......................G......','##############################','##############################' ],
+  ]
+};
+
+// ================================================================= セーブ
+const SAVE_KEY = 'dachs-sancha-progress';
+let save = { cleared:[false,false,false], hiddenFound:false, hiddenCleared:false, best:0 };
+try {
+  const raw = localStorage.getItem(SAVE_KEY);
+  if (raw) save = Object.assign(save, JSON.parse(raw));
+} catch (e) {}
+function persist() { try { localStorage.setItem(SAVE_KEY, JSON.stringify(save)); } catch (e) {} }
+const stageUnlocked = i => i === 0 || save.cleared[i - 1];
+
+// ================================================================= レベル読込
+let LEVEL = [], COLS = 0, LEVEL_W = 0, TH = THEMES.day, curStage = null, curIndex = 0;
+
+function tileAt(col, row) {
+  if (row < 0 || row >= ROWS) return '.';
+  if (col < 0) return '#';
+  if (col >= COLS) return '.';
+  return LEVEL[row][col];
+}
+const isBlock = ch => ch === '#' || ch === 'B';
+
+// ================================================================= 描画補助
+function R(x, y, w, h, color, s, ox, oy) {
+  ctx.fillStyle = color;
+  ctx.fillRect(ox + x * s, oy + y * s, w * s, h * s);
+}
+
+// ------------------------------------------------ ダックスフンド（26x16）
+function drawDog(ox, oy, s, frame, hurtFlash, rainbow) {
+  const P = (x, y, w, h, c) => R(x, y, w, h, c, s, ox, oy);
+  const D = hurtFlash ? '#ffffff' : C.dark;
+  const hu = (tick * 7) % 360;
+  const body   = rainbow ? 'hsl(' + hu + ',100%,90%)' : C.cream;
+  const bodyL  = rainbow ? 'hsl(' + hu + ',100%,96%)' : C.creamL;
+  const bodyD  = rainbow ? 'hsl(' + hu + ',60%,78%)'  : C.creamD;
+  const shirt  = rainbow ? 'hsl(' + ((hu + 140) % 360) + ',95%,62%)' : C.shirt;
+  const shirtD = rainbow ? 'hsl(' + ((hu + 140) % 360) + ',95%,46%)' : C.shirtD;
+  const earC   = rainbow ? 'hsl(' + hu + ',70%,82%)' : C.ear;
+  const earL   = rainbow ? 'hsl(' + hu + ',70%,90%)' : C.earL;
+
+  P(0, 3, 5, 4, D);
+  P(2, 5, 17, 9, D);
+  P(15, 0, 10, 10, D);
+  P(22, 3, 4, 7, D);
+  const legA = frame === 0 ? [4, 13] : [3, 14];
+  P(legA[0], 12, 4, 4, D);
+  P(legA[1], 12, 4, 4, D);
+
+  P(1, 4, 3, 2, bodyL);
+  P(3, 6, 15, 7, body);
+  P(16, 1, 8, 8, body);
+  P(23, 4, 3, 4, bodyL);
+  P(24, 4, 2, 2, C.nose);
+  P(23, 8, 2, 1, C.pink);
+  P(20, 3, 2, 2, C.nose);
+  P(21, 3, 1, 1, C.white);
+  P(20, 5, 2, 1, bodyD);
+
+  P(3, 6, 12, 7, shirt);
+  P(3, 12, 12, 1, shirtD);
+  P(9, 7, 1, 5, C.white);
+  P(11, 7, 1, 5, C.white);
+  P(13, 7, 1, 5, C.white);
+  P(6, 7, 1, 2, C.white);
+  P(8, 7, 1, 2, C.white);
+  P(7, 7, 1, 1, C.white);
+  P(7, 9, 1, 1, C.white);
+
+  P(15, 2, 5, 2, D);
+  P(14, 3, 6, 7, D);
+  P(15, 10, 5, 1, D);
+  P(16, 3, 3, 1, earL);
+  P(15, 4, 4, 5, earC);
+  P(16, 9, 3, 1, earC);
+
+  P(legA[0] + 1, 12, 2, 3, body);
+  P(legA[1] + 1, 12, 2, 3, body);
+}
+
+// ------------------------------------------------ ヒゲおじさん（16x20）
+function drawStache(ox, oy, s, frame, squashed) {
+  const P = (x, y, w, h, c) => R(x, y, w, h, c, s, ox, oy);
+  if (squashed) {
+    P(1, 15, 14, 5, C.dark);
+    P(2, 16, 12, 3, C.coat);
+    P(4, 14, 8, 2, C.skin);
+    P(4, 14, 8, 1, C.stache);
+    return;
+  }
+  P(1, 0, 14, 4, C.dark);
+  P(2, 1, 12, 3, C.hat);
+  P(0, 4, 16, 2, C.dark);
+  P(0, 4, 16, 1, C.hat);
+  P(2, 6, 12, 7, C.dark);
+  P(3, 6, 10, 6, C.skin);
+  P(3, 11, 10, 1, C.skinD);
+  P(4, 7, 2, 2, C.nose);
+  P(10, 7, 2, 2, C.nose);
+  P(2, 9, 12, 2, C.stache);
+  P(1, 10, 2, 2, C.stache);
+  P(13, 10, 2, 2, C.stache);
+  P(1, 12, 14, 7, C.dark);
+  P(2, 13, 12, 5, C.coat);
+  P(2, 16, 12, 2, C.coatD);
+  P(7, 13, 2, 5, C.coatD);
+  const sw = frame === 0 ? 0 : 1;
+  P(0 + sw, 13, 2, 5, C.coat);
+  P(14 - sw, 13, 2, 5, C.coat);
+  P(3 + sw, 18, 4, 2, C.dark);
+  P(9 - sw, 18, 4, 2, C.dark);
+}
+
+// ------------------------------------------------ ボス：ロン毛のヒゲおじさん（24x26）
+function drawBoss(ox, oy, s, frame, flash, defeated) {
+  const P = (x, y, w, h, c) => R(x, y, w, h, c, s, ox, oy);
+  const F = flash ? '#ffffff' : null;
+  const col = c => F || c;
+
+  if (defeated) {
+    P(1, 19, 22, 7, C.dark);                 // つぶれたコート
+    P(2, 20, 20, 5, col(C.bossCoat));
+    P(2, 17, 20, 3, C.dark);                 // 広がったロン毛
+    P(3, 17, 18, 2, col(C.bossHair));
+    P(8, 16, 8, 3, C.dark);
+    P(9, 16, 6, 2, C.skin);
+    P(9, 17, 6, 1, C.bossStache);
+    return;
+  }
+
+  const sw = frame === 0 ? 0 : 1;
+
+  // --- 背後に広がるロン毛（先細りのシルエット）
+  P(6, 0, 12, 2, C.dark);
+  P(4, 1, 16, 3, C.dark);
+  P(2, 3, 20, 14, C.dark);
+  P(3, 17, 18, 3, C.dark);
+  P(5, 20, 14, 2, C.dark);
+  P(7, 1, 10, 2, col(C.bossHair));
+  P(5, 2, 14, 2, col(C.bossHair));
+  P(3, 4, 18, 12, col(C.bossHairD));
+  P(4, 16, 16, 3, col(C.bossHairD));
+  P(6, 19, 12, 2, col(C.bossHairD));
+
+  // --- コート
+  P(4, 15, 16, 10, C.dark);
+  P(5, 16, 14, 8, col(C.bossCoat));
+  P(5, 21, 14, 3, col(C.bossCoatD));
+  P(5, 16, 14, 1, '#8d7fa8');               // 襟
+  P(11, 16, 2, 8, col(C.bossCoatD));        // 前合わせ
+
+  // --- 腕
+  P(0 + sw, 16, 4, 8, C.dark);
+  P(1 + sw, 17, 2, 6, col(C.bossCoat));
+  P(20 - sw, 16, 4, 8, C.dark);
+  P(21 - sw, 17, 2, 6, col(C.bossCoat));
+
+  // --- 足
+  P(5 + sw, 24, 6, 2, C.dark);
+  P(13 - sw, 24, 6, 2, C.dark);
+
+  // --- 顔
+  P(6, 3, 12, 14, C.dark);
+  P(7, 4, 10, 12, col(C.skin));
+  P(7, 15, 10, 1, col(C.skinD));
+  P(7, 4, 10, 2, col(C.bossHair));          // 前髪
+
+  // --- サングラス
+  P(6, 6, 12, 3, C.dark);
+  P(7, 6, 4, 2, C.bossLens);
+  P(13, 6, 4, 2, C.bossLens);
+  P(7, 6, 1, 1, '#cfe0f5');
+
+  // --- 鼻
+  P(11, 9, 2, 2, col(C.skinD));
+
+  // --- でかい口ヒゲ（あごは残す）
+  P(7, 11, 10, 3, C.bossStache);
+  P(6, 12, 1, 2, C.bossStache);
+  P(17, 12, 1, 2, C.bossStache);
+
+  // --- 顔の横に垂れるロン毛
+  P(2, 4, 5, 16, C.dark);
+  P(3, 5, 3, 14, col(C.bossHair));
+  P(3, 5, 3, 4, col(C.bossHairD));
+  P(17, 4, 5, 16, C.dark);
+  P(18, 5, 3, 14, col(C.bossHair));
+  P(18, 5, 3, 4, col(C.bossHairD));
+}
+
+// ------------------------------------------------ ジャーキー（10x8）
+function drawJerky(ox, oy, s) {
+  const P = (x, y, w, h, c) => R(x, y, w, h, c, s, ox, oy);
+  P(1, 1, 8, 6, C.dark);
+  P(1, 2, 8, 4, C.jerky);
+  P(0, 3, 10, 2, C.jerky);
+  P(2, 2, 5, 1, C.jerkyL);
+  P(3, 4, 4, 1, C.jerkyD);
+  P(7, 3, 1, 2, C.jerkyD);
+}
+
+// ------------------------------------------------ ご主人（14x26）
+function drawOwner(ox, oy, s, wave) {
+  const P = (x, y, w, h, c) => R(x, y, w, h, c, s, ox, oy);
+  P(2, 0, 10, 12, C.hairD);
+  P(2, 1, 10, 9, C.hair);
+  P(3, 3, 8, 7, C.skin);
+  P(4, 5, 2, 2, C.nose);
+  P(8, 5, 2, 2, C.nose);
+  P(6, 8, 3, 1, C.pink);
+  P(1, 8, 2, 6, C.hair);
+  P(11, 8, 2, 6, C.hair);
+  P(3, 12, 8, 8, C.top);
+  P(3, 18, 8, 2, C.topD);
+  P(1, 13, 2, 5, C.top);
+  const ay = wave ? 9 : 13;
+  P(11, ay, 2, 5, C.top);
+  P(11, ay - 2, 2, 2, C.skin);
+  P(3, 20, 8, 4, C.skirt);
+  P(4, 24, 2, 2, C.dark);
+  P(8, 24, 2, 2, C.dark);
+}
+
+// ------------------------------------------------ マンホール
+function drawManhole(px, py, glow) {
+  ctx.fillStyle = '#1c1a17'; ctx.fillRect(px + 2, py + 20, 28, 12);
+  ctx.fillStyle = '#57534a'; ctx.fillRect(px + 4, py + 21, 24, 9);
+  ctx.fillStyle = '#6d685c'; ctx.fillRect(px + 4, py + 21, 24, 3);
+  ctx.fillStyle = '#3e3a33';
+  ctx.fillRect(px + 8, py + 24, 3, 5);
+  ctx.fillRect(px + 14, py + 24, 3, 5);
+  ctx.fillRect(px + 20, py + 24, 3, 5);
+  if (glow) {
+    ctx.fillStyle = 'rgba(255,230,140,' + (0.3 + Math.sin(tick * 0.15) * 0.2) + ')';
+    ctx.fillRect(px + 2, py + 18, 28, 3);
+  }
+}
+
+// ================================================================= タイル
+function drawTile(ch, px, py) {
+  const g = TH.ground;
+  if (ch === '#') {
+    ctx.fillStyle = g[1]; ctx.fillRect(px, py, T, T);
+    ctx.fillStyle = g[0]; ctx.fillRect(px, py, T, 5);
+    ctx.fillStyle = g[2];
+    ctx.fillRect(px, py + 15, T, 2);
+    ctx.fillRect(px + 15, py + 5, 2, 10);
+    ctx.fillRect(px + 6, py + 17, 2, 15);
+    ctx.fillRect(px + 24, py + 17, 2, 15);
+    ctx.fillStyle = g[3]; ctx.fillRect(px, py + T - 3, T, 3);
+  } else if (ch === '=') {
+    ctx.fillStyle = '#2a2018'; ctx.fillRect(px, py, T, 12);
+    ctx.fillStyle = '#c98b4e'; ctx.fillRect(px + 1, py + 1, T - 2, 9);
+    ctx.fillStyle = '#a86d38'; ctx.fillRect(px + 1, py + 7, T - 2, 3);
+    ctx.fillStyle = '#e0a865'; ctx.fillRect(px + 1, py + 1, T - 2, 2);
+  } else if (ch === 'B') {
+    ctx.fillStyle = '#2a2018'; ctx.fillRect(px, py, T, T);
+    ctx.fillStyle = '#b98246'; ctx.fillRect(px + 2, py + 2, T - 4, T - 4);
+    ctx.fillStyle = '#96652f';
+    ctx.fillRect(px + 2, py + 14, T - 4, 3);
+    ctx.fillRect(px + 14, py + 2, 3, T - 4);
+  }
+}
+
+// ================================================================= ランドマーク
+function windows(x, y, w, h, step, color) {
+  ctx.fillStyle = color;
+  for (let wy = y; wy < y + h - 8; wy += step) {
+    for (let wx = x + 6; wx < x + w - 10; wx += 16) {
+      if (((wx * 3 + wy * 7) >> 3) % 4) ctx.fillRect(wx, wy, 7, 9);
+    }
+  }
+}
+
+// キャロットタワー（三軒茶屋のシンボル・27階建て）
+function drawCarrotTower(x, baseY, sc) {
+  const w = 84 * sc, h = 300 * sc;
+  const y = baseY - h;
+  // 本体
+  ctx.fillStyle = '#3a2016'; ctx.fillRect(x - 2, y, w + 4, h);
+  ctx.fillStyle = '#b4622e'; ctx.fillRect(x, y, w, h);
+  ctx.fillStyle = '#c9723a'; ctx.fillRect(x, y, w * 0.55, h);
+  ctx.fillStyle = '#8f4a20'; ctx.fillRect(x + w * 0.55, y, w * 0.16, h);
+  windows(x, y + 20 * sc, w, h - 30 * sc, 15 * sc, 'rgba(255,225,170,0.55)');
+  // 上部セットバック
+  const w2 = w * 0.66, x2 = x + (w - w2) / 2, h2 = 44 * sc;
+  ctx.fillStyle = '#3a2016'; ctx.fillRect(x2 - 2, y - h2, w2 + 4, h2);
+  ctx.fillStyle = '#d1834b'; ctx.fillRect(x2, y - h2, w2, h2);
+  ctx.fillStyle = '#e8a068'; ctx.fillRect(x2, y - h2, w2, 6 * sc);
+  // 展望フロア
+  const w3 = w * 0.44, x3 = x + (w - w3) / 2, h3 = 22 * sc;
+  ctx.fillStyle = '#3a2016'; ctx.fillRect(x3 - 2, y - h2 - h3, w3 + 4, h3);
+  ctx.fillStyle = '#f0c07f'; ctx.fillRect(x3, y - h2 - h3 + 3, w3, h3 - 6);
+  // アンテナ
+  ctx.fillStyle = '#4a3428'; ctx.fillRect(x + w / 2 - 2 * sc, y - h2 - h3 - 40 * sc, 4 * sc, 40 * sc);
+  ctx.fillStyle = Math.floor(tick / 30) % 2 ? '#ff5544' : '#7a2018';
+  ctx.fillRect(x + w / 2 - 3 * sc, y - h2 - h3 - 44 * sc, 6 * sc, 5 * sc);
+}
+
+// ゴリラビル（屋上のゴリラが目印）
+function drawGorillaBuilding(x, baseY, sc) {
+  const w = 92 * sc, h = 150 * sc, y = baseY - h;
+  ctx.fillStyle = '#3b3630'; ctx.fillRect(x - 2, y, w + 4, h);
+  ctx.fillStyle = '#d6cdbc'; ctx.fillRect(x, y, w, h);
+  ctx.fillStyle = '#c2b8a5'; ctx.fillRect(x, y, w, 8 * sc);
+  windows(x, y + 18 * sc, w, h - 24 * sc, 22 * sc, 'rgba(120,150,180,0.7)');
+  // 看板
+  ctx.fillStyle = '#a63b2e'; ctx.fillRect(x + 8 * sc, y + h - 30 * sc, w - 16 * sc, 12 * sc);
+  // 屋上のゴリラ
+  const gx = x + w / 2 - 20 * sc, gy = y - 44 * sc, u = sc * 2;
+  const G = (a, b, c, d, col) => { ctx.fillStyle = col; ctx.fillRect(gx + a * u, gy + b * u, c * u, d * u); };
+  G(6, 0, 8, 5, '#241d1a');          // 頭
+  G(7, 1, 2, 2, '#5a4a42'); G(11, 1, 2, 2, '#5a4a42');
+  G(8, 3, 4, 2, '#7a655c');          // 口元
+  G(3, 5, 14, 10, '#241d1a');        // 胴
+  G(6, 7, 8, 6, '#4a3d37');          // 胸
+  G(0, 6, 4, 11, '#241d1a');         // 腕
+  G(16, 6, 4, 11, '#241d1a');
+  G(4, 15, 5, 4, '#241d1a');         // 脚
+  G(11, 15, 5, 4, '#241d1a');
+}
+
+// エコー仲見世商店街のアーケード入口
+function drawEchoGate(x, baseY, sc) {
+  const w = 150 * sc, h = 96 * sc, y = baseY - h;
+  ctx.fillStyle = '#4a3a2a'; ctx.fillRect(x, y + 18 * sc, 12 * sc, h - 18 * sc);
+  ctx.fillStyle = '#4a3a2a'; ctx.fillRect(x + w - 12 * sc, y + 18 * sc, 12 * sc, h - 18 * sc);
+  ctx.fillStyle = '#2e2a24'; ctx.fillRect(x - 4 * sc, y, w + 8 * sc, 22 * sc);
+  ctx.fillStyle = '#e2513c'; ctx.fillRect(x - 2 * sc, y + 2 * sc, w + 4 * sc, 18 * sc);
+  ctx.fillStyle = '#fff2d0';
+  ctx.font = 'bold ' + Math.round(13 * sc) + 'px "Hiragino Maru Gothic ProN", sans-serif';
+  ctx.textAlign = 'center';
+  ctx.fillText('エコー仲見世', x + w / 2, y + 16 * sc);
+  // アーケード天井
+  ctx.fillStyle = 'rgba(210,225,235,0.55)';
+  ctx.fillRect(x + 12 * sc, y + 22 * sc, w - 24 * sc, 10 * sc);
+  // 提灯
+  for (let i = 0; i < 5; i++) {
+    const lx = x + 24 * sc + i * 26 * sc;
+    ctx.fillStyle = '#d93b2b'; ctx.fillRect(lx, y + 34 * sc, 10 * sc, 14 * sc);
+    ctx.fillStyle = '#f2e0b8'; ctx.fillRect(lx, y + 38 * sc, 10 * sc, 4 * sc);
+  }
+}
+
+// 三角地帯の飲み屋街
+function drawIzakaya(x, baseY, sc) {
+  const cols = ['#8a5a3c', '#6f4a34', '#7d5540', '#5f4230'];
+  for (let i = 0; i < 4; i++) {
+    const bw = 42 * sc, bh = (58 + (i % 3) * 18) * sc, bx = x + i * (bw - 3 * sc), by = baseY - bh;
+    ctx.fillStyle = '#2b211a'; ctx.fillRect(bx - 2, by, bw + 4, bh);
+    ctx.fillStyle = cols[i]; ctx.fillRect(bx, by, bw, bh);
+    ctx.fillStyle = 'rgba(255,205,120,0.85)';
+    ctx.fillRect(bx + 6 * sc, by + 12 * sc, 12 * sc, 10 * sc);
+    ctx.fillRect(bx + 24 * sc, by + 12 * sc, 12 * sc, 10 * sc);
+    // 縦看板
+    ctx.fillStyle = i % 2 ? '#e0483a' : '#f2b134';
+    ctx.fillRect(bx + bw - 12 * sc, by + 26 * sc, 8 * sc, 26 * sc);
+    // 提灯
+    ctx.fillStyle = '#d93b2b'; ctx.fillRect(bx + 8 * sc, baseY - 22 * sc, 9 * sc, 12 * sc);
+  }
+}
+
+// 世田谷線の電車
+function drawTram(x, baseY, sc) {
+  const railY = baseY - 4 * sc;
+  ctx.fillStyle = '#4b4238'; ctx.fillRect(x - 40 * sc, railY, 260 * sc, 5 * sc);
+  const off = (tick * 0.5) % (300 * sc);
+  const tx = x - 60 * sc + off;
+  const w = 58 * sc, h = 34 * sc, y = railY - h;
+  for (let car = 0; car < 2; car++) {
+    const cx = tx + car * (w + 4 * sc);
+    ctx.fillStyle = '#22301f'; ctx.fillRect(cx - 2, y, w + 4, h);
+    ctx.fillStyle = '#c9d94a'; ctx.fillRect(cx, y, w, h);
+    ctx.fillStyle = '#5e7a2c'; ctx.fillRect(cx, y + h - 9 * sc, w, 5 * sc);
+    ctx.fillStyle = 'rgba(230,245,255,0.9)';
+    for (let i = 0; i < 3; i++) ctx.fillRect(cx + (7 + i * 17) * sc, y + 7 * sc, 12 * sc, 12 * sc);
+    ctx.fillStyle = '#2b2b2b';
+    ctx.fillRect(cx + 8 * sc, y + h, 8 * sc, 5 * sc);
+    ctx.fillRect(cx + w - 16 * sc, y + h, 8 * sc, 5 * sc);
+  }
+}
+
+function drawLandmark(lm, cam) {
+  const x = lm.col * T - cam * 0.35;
+  if (x < -420 || x > VW + 260) return;
+  const base = LEVEL_H - 56;
+  if (lm.t === 'carrot') drawCarrotTower(x, base, 0.85);
+  else if (lm.t === 'carrotBig') drawCarrotTower(x, base + 40, 1.25);
+  else if (lm.t === 'gorilla') drawGorillaBuilding(x, base, 1);
+  else if (lm.t === 'echo') drawEchoGate(x, base, 1);
+  else if (lm.t === 'izakaya') drawIzakaya(x, base, 1);
+  else if (lm.t === 'tram') drawTram(x, base, 1);
+}
+
+// ================================================================= 背景
+let BLD = [];
+function buildSkyline() {
+  BLD = [];
+  let seed = 20260801;
+  const rnd = () => (seed = (seed * 1103515245 + 12345) & 0x7fffffff) / 0x7fffffff;
+  for (let x = -200; x < LEVEL_W + 400; x += 70 + Math.floor(rnd() * 50)) {
+    BLD.push({ x, w: 54 + Math.floor(rnd() * 46), h: 110 + Math.floor(rnd() * 190), t: rnd() });
+  }
+}
+
+function drawBackground(cam) {
+  const g = ctx.createLinearGradient(0, 0, 0, VH);
+  g.addColorStop(0, TH.sky[0]); g.addColorStop(0.6, TH.sky[1]); g.addColorStop(1, TH.sky[2]);
+  ctx.fillStyle = g; ctx.fillRect(0, 0, VW, VH);
+
+  if (curStage && curStage.theme === 'under') {
+    // 地下：土の断面とパイプ
+    ctx.fillStyle = '#2c211b'; ctx.fillRect(0, 0, VW, VH);
+    ctx.fillStyle = '#3a2b23';
+    for (let i = 0; i < 60; i++) {
+      const x = ((i * 137) - cam * 0.4) % (VW + 200);
+      ctx.fillRect(x < -100 ? x + VW + 200 : x, (i * 53) % VH, 40, 26);
+    }
+    ctx.fillStyle = '#4d3c31';
+    for (let i = 0; i < 12; i++) {
+      const x = ((i * 320) - cam * 0.55) % (VW + 400);
+      ctx.fillRect(x < -200 ? x + VW + 400 : x, 40 + (i % 3) * 90, 200, 12);
+    }
+  } else {
+    // 雲
+    ctx.fillStyle = TH.cloud;
+    for (let i = 0; i < 14; i++) {
+      const raw = ((i * 437) - cam * 0.15) % (LEVEL_W * 0.2 + 900);
+      const x = raw < -160 ? raw + LEVEL_W * 0.2 + 900 : raw;
+      const y = 26 + (i % 4) * 42;
+      ctx.fillRect(x, y, 60, 14);
+      ctx.fillRect(x + 12, y - 10, 34, 14);
+      ctx.fillRect(x + 26, y - 18, 22, 12);
+    }
+    // 一般ビル
+    for (const b of BLD) {
+      const x = b.x - cam * 0.35;
+      if (x + b.w < -20 || x > VW + 20) continue;
+      const y = LEVEL_H - 96 - b.h;
+      ctx.fillStyle = b.t > 0.5 ? TH.bldg[0] : TH.bldg[1];
+      ctx.fillRect(x, y, b.w, b.h + 96);
+      ctx.fillStyle = b.t > 0.5 ? TH.bldgTop[0] : TH.bldgTop[1];
+      ctx.fillRect(x, y, b.w, 6);
+      windows(x, y + 12, b.w, b.h + 40, 22, TH.win);
+    }
+    // ランドマーク
+    if (curStage) for (const lm of curStage.landmarks) drawLandmark(lm, cam);
+    // 街路樹
+    for (let i = 0; i < 40; i++) {
+      const x = i * 260 - cam * 0.6;
+      if (x < -80 || x > VW + 80) continue;
+      const y = LEVEL_H - 64;
+      ctx.fillStyle = '#6b4a2c'; ctx.fillRect(x + 16, y - 40, 10, 46);
+      ctx.fillStyle = TH.tree[0]; ctx.fillRect(x - 2, y - 86, 46, 46);
+      ctx.fillStyle = TH.tree[1]; ctx.fillRect(x - 2, y - 86, 46, 14);
+      ctx.fillStyle = TH.tree[2]; ctx.fillRect(x - 2, y - 52, 46, 12);
+    }
+  }
+  if (TH.haze) { ctx.fillStyle = TH.haze; ctx.fillRect(0, 0, VW, VH); }
+}
+
+// ================================================================= サウンド
+let ac = null;
+function beep(freq, dur, type, vol) {
+  if (!ac) return;
+  const o = ac.createOscillator(), g = ac.createGain();
+  o.type = type || 'square';
+  o.frequency.setValueAtTime(freq, ac.currentTime);
+  g.gain.setValueAtTime(vol || 0.08, ac.currentTime);
+  g.gain.exponentialRampToValueAtTime(0.001, ac.currentTime + dur);
+  o.connect(g); g.connect(ac.destination);
+  o.start(); o.stop(ac.currentTime + dur);
+}
+function melody(notes, vol) {
+  if (!ac) return;
+  let t = ac.currentTime;
+  for (const [f, d] of notes) {
+    const o = ac.createOscillator(), g = ac.createGain();
+    o.type = 'square';
+    o.frequency.setValueAtTime(f, t);
+    g.gain.setValueAtTime(vol || 0.1, t);
+    g.gain.exponentialRampToValueAtTime(0.001, t + d);
+    o.connect(g); g.connect(ac.destination);
+    o.start(t); o.stop(t + d);
+    t += d * 0.85;
+  }
+}
+const SFX = {
+  jump:  () => beep(620, 0.12, 'square', 0.06),
+  jerky: () => { beep(980, 0.07); setTimeout(() => beep(1320, 0.09), 60); },
+  stomp: () => beep(180, 0.14, 'sawtooth', 0.09),
+  hurt:  () => { beep(300, 0.12, 'sawtooth', 0.09); setTimeout(() => beep(160, 0.2, 'sawtooth', 0.09), 100); },
+  clear: () => melody([[523,0.14],[659,0.14],[784,0.14],[1047,0.34]]),
+  over:  () => melody([[392,0.18],[330,0.18],[262,0.4]]),
+  power: () => melody([[784,0.09],[988,0.09],[1175,0.09],[1568,0.22]]),
+  warp:  () => melody([[262,0.1],[330,0.1],[392,0.1],[523,0.1],[659,0.22]]),
+  boss:  () => melody([[147,0.22],[139,0.22],[131,0.4]], 0.12),
+  bossHit: () => { beep(220, 0.1, 'square', 0.1); setTimeout(()=>beep(110,0.22,'sawtooth',0.1), 90); },
+};
+
+// ================================================================= 入力
+const keys = {}, pressed = {};
+const IS_TOUCH = matchMedia('(pointer: coarse)').matches || 'ontouchstart' in window;
+if (IS_TOUCH) document.body.classList.add('touch');
+// 表示テキストをキーボード用／タッチ用で出し分ける
+const K = (kbd, touch) => IS_TOUCH ? touch : kbd;
+
+function ensureAudio() {
+  if (!ac) { try { ac = new (window.AudioContext || window.webkitAudioContext)(); } catch (err) {} }
+  if (ac && ac.state === 'suspended') ac.resume();
+}
+function pressKey(code) { ensureAudio(); if (!keys[code]) pressed[code] = true; keys[code] = true; }
+function releaseKey(code) { keys[code] = false; }
+function tapKey(code) { pressKey(code); setTimeout(() => releaseKey(code), 90); }
+
+addEventListener('keydown', e => {
+  if (['ArrowLeft','ArrowRight','ArrowUp','ArrowDown','Space'].includes(e.code)) e.preventDefault();
+  pressKey(e.code);
+});
+addEventListener('keyup', e => releaseKey(e.code));
+
+// --- 画面上のボタン（マルチタッチ対応）
+document.querySelectorAll('#touch button, #backBtn').forEach(btn => {
+  const code = btn.dataset.k;
+  const down = ev => {
+    ev.preventDefault();
+    btn.classList.add('on');
+    pressKey(code);
+    if (ev.pointerId != null && btn.setPointerCapture) {
+      try { btn.setPointerCapture(ev.pointerId); } catch (e) {}
+    }
+  };
+  const up = ev => { ev.preventDefault(); btn.classList.remove('on'); releaseKey(code); };
+  btn.addEventListener('pointerdown', down);
+  btn.addEventListener('pointerup', up);
+  btn.addEventListener('pointercancel', up);
+  btn.addEventListener('lostpointercapture', up);
+  btn.addEventListener('contextmenu', e => e.preventDefault());
+});
+
+// --- メニュー画面はキャンバスを直接タップでも操作できる
+cv.addEventListener('pointerdown', e => {
+  if (state === 'play') return;
+  e.preventDefault();
+  const r = cv.getBoundingClientRect();
+  const x = (e.clientX - r.left) * (VW / r.width);
+  const y = (e.clientY - r.top) * (VH / r.height);
+  if (state === 'select') {
+    const list = selectableStages();
+    const cw = 190, gap = 18;
+    let bx = VW / 2 - (list.length * cw + (list.length - 1) * gap) / 2;
+    for (let i = 0; i < list.length; i++) {
+      if (x >= bx && x <= bx + cw && y >= 110 && y <= 340) {
+        if (selIdx === i) tapKey('Space'); else selIdx = i;
+        return;
+      }
+      bx += cw + gap;
+    }
+  }
+  tapKey('Space');
+});
+
+const held = (...c) => c.some(k => keys[k]);
+const justPressed = (...c) => c.some(k => pressed[k]);
+
+// ================================================================= 物理
+const GRAV = 0.62, MAX_FALL = 15, RUN_ACC = 0.55, RUN_MAX = 4.4, FRICTION = 0.36, JUMP_V = -12.8;
+
+function moveEntity(e) {
+  e.x += e.vx;
+  let c0 = Math.floor(e.x / T), c1 = Math.floor((e.x + e.w - 1) / T);
+  let r0 = Math.floor(e.y / T), r1 = Math.floor((e.y + e.h - 1) / T);
+  for (let r = r0; r <= r1; r++) for (let c = c0; c <= c1; c++) {
+    if (!isBlock(tileAt(c, r))) continue;
+    if (e.vx > 0) { e.x = c * T - e.w; e.vx = 0; e.hitWall = true; }
+    else if (e.vx < 0) { e.x = (c + 1) * T; e.vx = 0; e.hitWall = true; }
+  }
+  const prevBottom = e.y + e.h;
+  e.y += e.vy;
+  e.onGround = false;
+  c0 = Math.floor(e.x / T); c1 = Math.floor((e.x + e.w - 1) / T);
+  r0 = Math.floor(e.y / T); r1 = Math.floor((e.y + e.h - 1) / T);
+  for (let r = r0; r <= r1; r++) for (let c = c0; c <= c1; c++) {
+    const ch = tileAt(c, r);
+    if (isBlock(ch)) {
+      if (e.vy > 0) { e.y = r * T - e.h; e.vy = 0; e.onGround = true; }
+      else if (e.vy < 0) { e.y = (r + 1) * T; e.vy = 0; }
+    } else if (ch === '=' && e.vy > 0 && prevBottom <= r * T + 2) {
+      e.y = r * T - e.h; e.vy = 0; e.onGround = true;
+    }
+  }
+}
+const overlap = (a, b) => a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y;
+
+// ================================================================= 状態
+const POWER_NEED = 10;      // ジャーキー何個で無敵になるか
+const POWER_TIME = 480;     // 無敵の長さ（フレーム）
+
+let state = 'title';
+let player, enemies, jerkies, owner, boss, manholes, particles;
+let cam, lives, score, tick = 0, selIdx = 0, msgTimer = 0, msgText = '';
+let powerCount = 0, powerTimer = 0, stageJerky = 0;
+let fromHidden = false;      // 隠しステージから戻ってきたか
+
+function loadStage(def, index) {
+  curStage = def; curIndex = index;
+  TH = THEMES[def.theme];
+  LEVEL = [];
+  for (let r = 0; r < ROWS; r++)
+    LEVEL.push(def.chunks.map(ch => (ch[r] || '').padEnd(30, '.').slice(0, 30)).join(''));
+  COLS = LEVEL[0].length;
+  LEVEL_W = COLS * T;
+  buildSkyline();
+
+  enemies = []; jerkies = []; manholes = []; particles = []; owner = null; boss = null;
+  player = { x: 64, y: 300, w: 44, h: 32, vx: 0, vy: 0, dir: 1,
+             onGround: false, coyote: 0, buffer: 0, inv: 0, anim: 0 };
+
+  for (let r = 0; r < ROWS; r++) for (let c = 0; c < COLS; c++) {
+    const ch = LEVEL[r][c];
+    if (ch === 'P') { player.x = c * T + 2; player.y = r * T; }
+    else if (ch === 'E') enemies.push({ x:c*T, y:r*T-4, w:28, h:34, vx:-1.1, vy:0,
+                                        onGround:false, hitWall:false, dead:0, alive:true });
+    else if (ch === 'J') jerkies.push({ x:c*T+6, y:r*T+8, w:20, h:16, got:false, ph:(c*7+r*13)%60 });
+    else if (ch === 'G') owner = { x:c*T+2, y:r*T-20, w:28, h:52 };
+    else if (ch === 'M') manholes.push({ x:c*T, y:r*T, w:32, h:32 });
+    else if (ch === 'X') boss = { x:c*T, y:r*T-46, w:56, h:74, vx:1.4, vy:0, onGround:false,
+                                  hitWall:false, hp:3, inv:0, alive:true, jumpCd:110, dead:0 };
+  }
+  stageJerky = jerkies.length;
+  player.safeX = player.x; player.safeY = player.y;
+  cam = 0; powerCount = 0; powerTimer = 0; msgTimer = 0; msgText = '';
+  if (boss) SFX.boss();
+}
+
+function startStage(index) {
+  loadStage(STAGES[index], index);
+  lives = 3; score = 0;
+  state = 'play';
+}
+function startHidden() {
+  loadStage(HIDDEN, -1);
+  state = 'play';
+  save.hiddenFound = true; persist();
+  SFX.warp();
+}
+
+function flashMsg(t) { msgText = t; msgTimer = 110; }
+
+// ================================================================= パーティクル
+function spawnSparkle(x, y, color) {
+  particles.push({ x, y, vx:(Math.random()-0.5)*2.4, vy:-Math.random()*2.4-0.6,
+                   life:26+Math.random()*16, color });
+}
+function updateParticles() {
+  for (let i = particles.length - 1; i >= 0; i--) {
+    const p = particles[i];
+    p.x += p.vx; p.y += p.vy; p.vy += 0.09; p.life--;
+    if (p.life <= 0) particles.splice(i, 1);
+  }
+}
+function drawParticles(ox) {
+  for (const p of particles) {
+    ctx.fillStyle = p.color;
+    const s = p.life > 18 ? 5 : 3;
+    ctx.fillRect(ox + p.x - s / 2, p.y - 1, s, 2);
+    ctx.fillRect(ox + p.x - 1, p.y - s / 2, 2, s);
+  }
+}
+
+// ================================================================= 更新
+function updatePlay() {
+  const p = player;
+  let ax = 0;
+  if (held('ArrowLeft', 'KeyA')) ax -= 1;
+  if (held('ArrowRight', 'KeyD')) ax += 1;
+  if (ax !== 0) {
+    p.vx += ax * RUN_ACC;
+    const mx = powerTimer > 0 ? RUN_MAX * 1.25 : RUN_MAX;
+    p.vx = Math.max(-mx, Math.min(mx, p.vx));
+    p.dir = ax; p.anim += Math.abs(p.vx) * 0.09;
+  } else {
+    if (p.vx > 0) p.vx = Math.max(0, p.vx - FRICTION);
+    else if (p.vx < 0) p.vx = Math.min(0, p.vx + FRICTION);
+  }
+
+  if (justPressed('Space', 'ArrowUp', 'KeyW')) p.buffer = 8;
+  if (p.buffer > 0) p.buffer--;
+  if (p.onGround) p.coyote = 6; else if (p.coyote > 0) p.coyote--;
+  if (p.buffer > 0 && p.coyote > 0) {
+    p.vy = JUMP_V; p.buffer = 0; p.coyote = 0; p.onGround = false; SFX.jump();
+  }
+  if (p.vy < -4 && !held('Space', 'ArrowUp', 'KeyW')) p.vy = -4;
+  p.vy = Math.min(MAX_FALL, p.vy + GRAV);
+  moveEntity(p);
+  if (p.x < 0) { p.x = 0; p.vx = 0; }
+  if (p.x + p.w > LEVEL_W) { p.x = LEVEL_W - p.w; p.vx = 0; }
+
+  if (p.onGround && tick % 20 === 0) { p.safeX = p.x; p.safeY = p.y - 8; }
+  if (p.inv > 0) p.inv--;
+  if (powerTimer > 0) {
+    powerTimer--;
+    if (tick % 3 === 0) spawnSparkle(p.x + 10 + Math.random() * 30, p.y + Math.random() * 30,
+                                     'hsl(' + ((tick * 11) % 360) + ',100%,72%)');
+    if (powerTimer === 0) flashMsg('無敵モード終了');
+  }
+  if (p.y > LEVEL_H + 60) damage(true);
+
+  // --- マンホール（隠しステージ入口）
+  for (const m of manholes) {
+    if (overlap(p, m) && p.onGround) {
+      if (justPressed('ArrowDown', 'KeyS')) { startHidden(); return; }
+      if (tick % 40 === 0) spawnSparkle(m.x + 16, m.y + 20, '#ffe08a');
+    }
+  }
+
+  // --- 敵
+  for (const e of enemies) {
+    if (!e.alive) { if (e.dead > 0) e.dead--; continue; }
+    e.hitWall = false;
+    e.vy = Math.min(MAX_FALL, e.vy + GRAV);
+    moveEntity(e);
+    if (e.hitWall) e.vx = -e.vx;
+    if (e.onGround) {
+      const aheadC = Math.floor((e.x + (e.vx > 0 ? e.w + 2 : -2)) / T);
+      const belowR = Math.floor((e.y + e.h + 4) / T);
+      const below = tileAt(aheadC, belowR);
+      if (!isBlock(below) && below !== '=') e.vx = -e.vx;
+    }
+    if (e.y > LEVEL_H + 80) { e.alive = false; e.dead = 0; continue; }
+
+    if (overlap(p, e)) {
+      if (powerTimer > 0) {
+        e.alive = false; e.dead = 40; score += 300;
+        for (let i = 0; i < 8; i++) spawnSparkle(e.x + 14, e.y + 16, '#ffd34d');
+        SFX.stomp();
+      } else if (p.vy > 0 && (p.y + p.h) - e.y < 22) {
+        e.alive = false; e.dead = 40; p.vy = -9; score += 200; SFX.stomp();
+      } else if (p.inv <= 0) damage(false);
+    }
+  }
+
+  // --- ボス
+  if (boss && boss.alive) updateBoss();
+  else if (boss && boss.dead > 0) boss.dead--;
+
+  // --- ジャーキー
+  for (const j of jerkies) {
+    if (j.got) continue;
+    if (overlap(p, j)) {
+      j.got = true; score += 100; SFX.jerky();
+      for (let i = 0; i < 4; i++) spawnSparkle(j.x + 10, j.y + 8, '#ffd34d');
+      powerCount++;
+      if (powerCount >= POWER_NEED) {
+        powerCount = 0; powerTimer = POWER_TIME;
+        p.inv = Math.max(p.inv, 30);
+        flashMsg('★ きらきら無敵モード！ ★');
+        SFX.power();
+        for (let i = 0; i < 26; i++)
+          spawnSparkle(p.x + 22, p.y + 16, 'hsl(' + (i * 14) + ',100%,70%)');
+      }
+    }
+  }
+
+  // --- ゴール
+  if (owner && overlap(p, owner)) {
+    if (boss && boss.alive) {
+      if (msgTimer <= 0) flashMsg('ボスをたおさないと近づけない！');
+    } else {
+      clearStage();
+    }
+  }
+
+  updateParticles();
+  if (msgTimer > 0) msgTimer--;
+
+  const target = p.x + p.w / 2 - VW * 0.42;
+  cam += (target - cam) * 0.12;
+  cam = Math.max(0, Math.min(LEVEL_W - VW, cam));
+}
+
+function updateBoss() {
+  const b = boss, p = player;
+  if (b.inv > 0) b.inv--;
+  b.hitWall = false;
+
+  // プレイヤーを追いかける
+  const speed = 1.4 + (3 - b.hp) * 0.5;
+  b.vx = (p.x + p.w / 2 < b.x + b.w / 2) ? -speed : speed;
+
+  b.jumpCd--;
+  if (b.jumpCd <= 0 && b.onGround) {
+    b.vy = -13; b.jumpCd = 150 - (3 - b.hp) * 30;
+  }
+  b.vy = Math.min(MAX_FALL, b.vy + GRAV);
+  moveEntity(b);
+  if (b.x < 0) b.x = 0;
+  if (b.x + b.w > LEVEL_W) b.x = LEVEL_W - b.w;
+
+  if (overlap(p, b)) {
+    const stomping = p.vy > 0 && (p.y + p.h) - b.y < 30;
+    if (powerTimer > 0) {
+      hitBoss(2);
+      p.vy = -9;
+    } else if (stomping && b.inv <= 0) {
+      hitBoss(1);
+      p.vy = -10;
+    } else if (!stomping && p.inv <= 0) {
+      damage(false);
+    }
+  }
+}
+
+function hitBoss(n) {
+  const b = boss;
+  b.hp -= n; b.inv = 80;
+  score += 500;
+  for (let i = 0; i < 16; i++) spawnSparkle(b.x + 28, b.y + 30, '#ff9a5c');
+  SFX.bossHit();
+  if (b.hp <= 0) {
+    b.alive = false; b.dead = 60;
+    score += 2000;
+    for (let i = 0; i < 40; i++) spawnSparkle(b.x + 28, b.y + 40, 'hsl(' + (i * 9) + ',100%,68%)');
+    flashMsg('ボス撃破！ ご主人のもとへ！');
+    SFX.clear();
+  }
+}
+
+function clearStage() {
+  state = 'clear';
+  SFX.clear();
+  if (curStage.hidden) {
+    save.hiddenCleared = true;
+  } else {
+    save.cleared[curIndex] = true;
+  }
+  const total = score + lives * 500;
+  if (total > save.best) save.best = total;
+  persist();
+}
+
+function damage(fell) {
+  lives--; SFX.hurt(); powerCount = 0; powerTimer = 0;
+  if (lives <= 0) { state = 'gameover'; SFX.over(); return; }
+  player.inv = 90;
+  if (fell) { player.x = player.safeX; player.y = player.safeY; player.vx = 0; player.vy = 0; }
+  else { player.vy = -7; player.vx = -player.dir * 3; }
+}
+
+// ================================================================= 描画
+function drawWorld() {
+  drawBackground(cam);
+  const ox = -Math.round(cam);
+  const cStart = Math.max(0, Math.floor(cam / T) - 1);
+  const cEnd = Math.min(COLS - 1, Math.ceil((cam + VW) / T));
+  for (let r = 0; r < ROWS; r++) for (let c = cStart; c <= cEnd; c++) {
+    const ch = LEVEL[r][c];
+    if (ch === '#' || ch === '=' || ch === 'B') drawTile(ch, ox + c * T, r * T);
+  }
+
+  for (const m of manholes) drawManhole(ox + m.x, m.y, overlap(player, m));
+
+  for (const j of jerkies) {
+    if (j.got) continue;
+    if (j.x + 60 < cam || j.x - 60 > cam + VW) continue;
+    drawJerky(ox + j.x, j.y + Math.sin((tick + j.ph) * 0.09) * 3, 2);
+  }
+
+  if (owner && !(owner.x + 140 < cam || owner.x - 140 > cam + VW)) {
+    const locked = boss && boss.alive;
+    if (!locked) {
+      const gx = ox + owner.x + 14, gy = owner.y + 26, rad = 70 + Math.sin(tick * 0.06) * 8;
+      const glow = ctx.createRadialGradient(gx, gy, 8, gx, gy, rad);
+      glow.addColorStop(0, 'rgba(255,236,170,0.55)');
+      glow.addColorStop(0.6, 'rgba(255,225,140,0.18)');
+      glow.addColorStop(1, 'rgba(255,220,120,0)');
+      ctx.fillStyle = glow; ctx.fillRect(gx - rad, gy - rad, rad * 2, rad * 2);
+    }
+    drawOwner(ox + owner.x, owner.y, 2, Math.floor(tick / 22) % 2 === 0);
+    ctx.fillStyle = locked ? '#ffffff' : C.dark;
+    ctx.font = 'bold 14px sans-serif'; ctx.textAlign = 'center';
+    ctx.fillText(locked ? 'たすけて！' : 'ご主人！', ox + owner.x + 14, owner.y - 14);
+  }
+
+  for (const e of enemies) {
+    if (!e.alive && e.dead <= 0) continue;
+    if (e.x + 80 < cam || e.x - 80 > cam + VW) continue;
+    const f = Math.floor(tick / 9) % 2;
+    ctx.save();
+    if (e.vx > 0) { ctx.translate(ox + e.x + e.w + 2, e.y - 6); ctx.scale(-1, 1); drawStache(0, 0, 2, f, !e.alive); }
+    else drawStache(ox + e.x - 2, e.y - 6, 2, f, !e.alive);
+    ctx.restore();
+  }
+
+  if (boss && (boss.alive || boss.dead > 0)) {
+    const f = Math.floor(tick / 8) % 2;
+    const flash = boss.inv > 0 && Math.floor(tick / 4) % 2 === 0;
+    ctx.save();
+    if (boss.vx > 0) { ctx.translate(ox + boss.x + boss.w + 8, boss.y - 4); ctx.scale(-1, 1); drawBoss(0, 0, 3, f, flash, !boss.alive); }
+    else drawBoss(ox + boss.x - 8, boss.y - 4, 3, f, flash, !boss.alive);
+    ctx.restore();
+  }
+
+  drawParticles(ox);
+
+  const p = player;
+  if (!(p.inv > 0 && powerTimer <= 0 && Math.floor(tick / 4) % 2 === 0)) {
+    if (powerTimer > 0) {
+      const gx = ox + p.x + 22, gy = p.y + 16, rad = 46;
+      const glow = ctx.createRadialGradient(gx, gy, 4, gx, gy, rad);
+      glow.addColorStop(0, 'hsla(' + ((tick * 7) % 360) + ',100%,75%,0.5)');
+      glow.addColorStop(1, 'hsla(' + ((tick * 7) % 360) + ',100%,75%,0)');
+      ctx.fillStyle = glow; ctx.fillRect(gx - rad, gy - rad, rad * 2, rad * 2);
+    }
+    const walking = Math.abs(p.vx) > 0.4 && p.onGround;
+    const f = !p.onGround ? 1 : (walking ? Math.floor(p.anim) % 2 : 0);
+    ctx.save();
+    if (p.dir < 0) { ctx.translate(ox + p.x + p.w + 4, p.y); ctx.scale(-1, 1); drawDog(0, 0, 2, f, false, powerTimer > 0); }
+    else drawDog(ox + p.x - 4, p.y, 2, f, false, powerTimer > 0);
+    ctx.restore();
+  }
+}
+
+function drawHUD() {
+  ctx.fillStyle = 'rgba(20,16,12,0.78)';
+  ctx.fillRect(0, 0, VW, 40);
+
+  drawJerky(14, 10, 2);
+  const got = jerkies.filter(j => j.got).length;
+  ctx.fillStyle = '#fff';
+  ctx.font = 'bold 17px "Hiragino Maru Gothic ProN", sans-serif';
+  ctx.textAlign = 'left';
+  ctx.fillText('× ' + got + ' / ' + stageJerky, 44, 27);
+
+  // 無敵ゲージ
+  const gw = 84, gx = 148;
+  ctx.fillStyle = 'rgba(255,255,255,0.18)'; ctx.fillRect(gx, 15, gw, 10);
+  if (powerTimer > 0) {
+    ctx.fillStyle = 'hsl(' + ((tick * 9) % 360) + ',100%,62%)';
+    ctx.fillRect(gx, 15, gw * (powerTimer / POWER_TIME), 10);
+  } else {
+    ctx.fillStyle = '#ffd34d';
+    ctx.fillRect(gx, 15, gw * (powerCount / POWER_NEED), 10);
+  }
+  ctx.strokeStyle = 'rgba(255,255,255,0.5)'; ctx.lineWidth = 1;
+  ctx.strokeRect(gx + 0.5, 15.5, gw, 10);
+  ctx.fillStyle = powerTimer > 0 ? '#fff' : '#c9c2b4';
+  ctx.font = '11px "Hiragino Maru Gothic ProN", sans-serif';
+  ctx.fillText(powerTimer > 0 ? '無敵！' : 'むてき', gx + gw + 6, 25);
+
+  // ライフ
+  for (let i = 0; i < 3; i++) {
+    const x = 290 + i * 24, y = 12;
+    ctx.fillStyle = i < lives ? '#ff5d73' : 'rgba(255,255,255,0.18)';
+    ctx.fillRect(x + 3, y, 5, 4); ctx.fillRect(x + 10, y, 5, 4);
+    ctx.fillRect(x, y + 4, 18, 6);
+    ctx.fillRect(x + 3, y + 10, 12, 4);
+    ctx.fillRect(x + 6, y + 14, 6, 4);
+  }
+
+  ctx.fillStyle = '#ffcb05'; ctx.textAlign = 'right';
+  ctx.font = 'bold 17px "Hiragino Maru Gothic ProN", sans-serif';
+  ctx.fillText('SCORE ' + String(score).padStart(5, '0'), VW - 16, 27);
+
+  ctx.fillStyle = 'rgba(255,255,255,0.72)'; ctx.textAlign = 'center';
+  ctx.font = '13px "Hiragino Maru Gothic ProN", sans-serif';
+  ctx.fillText(curStage.name, VW / 2 + 60, 26);
+
+  // 進捗バー
+  if (owner) {
+    const prog = Math.max(0, Math.min(1, (player.x - 100) / (owner.x - 100)));
+    ctx.fillStyle = 'rgba(255,255,255,0.2)'; ctx.fillRect(390, 30, 170, 5);
+    ctx.fillStyle = '#7fe08a'; ctx.fillRect(390, 30, 170 * prog, 5);
+  }
+
+  // ボスHP
+  if (boss && boss.alive && Math.abs((boss.x - cam)) < VW + 200) {
+    ctx.textAlign = 'center';
+    ctx.fillStyle = 'rgba(20,16,12,0.6)'; ctx.fillRect(VW / 2 - 130, 48, 260, 30);
+    ctx.fillStyle = '#ffffff'; ctx.font = 'bold 13px "Hiragino Maru Gothic ProN", sans-serif';
+    ctx.fillText('ロン毛のヒゲおやぶん', VW / 2, 61);
+    for (let i = 0; i < 3; i++) {
+      ctx.fillStyle = i < boss.hp ? '#ff4d5e' : 'rgba(255,255,255,0.2)';
+      ctx.fillRect(VW / 2 - 60 + i * 42, 66, 36, 7);
+    }
+  }
+
+  // メッセージ
+  if (msgTimer > 0) {
+    ctx.textAlign = 'center';
+    ctx.fillStyle = 'rgba(20,16,12,0.7)'; ctx.fillRect(VW / 2 - 190, VH - 74, 380, 34);
+    ctx.fillStyle = '#ffe58a';
+    ctx.font = 'bold 17px "Hiragino Maru Gothic ProN", sans-serif';
+    ctx.fillText(msgText, VW / 2, VH - 51);
+  }
+
+  // マンホールのヒント
+  for (const m of manholes) {
+    if (overlap(player, m) && player.onGround) {
+      ctx.textAlign = 'center';
+      ctx.fillStyle = 'rgba(20,16,12,0.7)';
+      ctx.fillRect(VW / 2 - 110, VH - 120, 220, 30);
+      ctx.fillStyle = '#9fe8ff';
+      ctx.font = 'bold 15px "Hiragino Maru Gothic ProN", sans-serif';
+      ctx.fillText(K('↓キーで もぐる…？', '▼ボタンで もぐる…？'), VW / 2, VH - 99);
+    }
+  }
+}
+
+function panel(lines, accent) {
+  ctx.fillStyle = 'rgba(16,14,20,0.8)'; ctx.fillRect(0, 0, VW, VH);
+  ctx.textAlign = 'center';
+  let y = VH / 2 - (lines.length - 1) * 24 - 10;
+  lines.forEach((l, i) => {
+    ctx.fillStyle = i === 0 ? (accent || '#ffcb05') : '#ffffff';
+    ctx.font = i === 0 ? 'bold 34px "Hiragino Maru Gothic ProN", sans-serif'
+                       : '17px "Hiragino Maru Gothic ProN", sans-serif';
+    ctx.fillText(l, VW / 2, y);
+    y += i === 0 ? 46 : 29;
+  });
+}
+
+// ------------------------------------------------------------- タイトル
+function drawTitle() {
+  TH = THEMES.evening; curStage = null;
+  drawBackground(0);
+  drawCarrotTower(120, LEVEL_H - 56, 0.9);
+  drawGorillaBuilding(600, LEVEL_H - 56, 0.9);
+  for (let c = 0; c <= VW / T; c++) { drawTile('#', c * T, 13 * T); drawTile('#', c * T, 14 * T); }
+  ctx.fillStyle = 'rgba(16,14,20,0.3)'; ctx.fillRect(0, 0, VW, VH);
+
+  drawDog(VW / 2 - 150, 96, 4, Math.floor(tick / 14) % 2, false, false);
+  drawOwner(VW / 2 + 86, 96, 3, Math.floor(tick / 22) % 2 === 0);
+
+  ctx.fillStyle = 'rgba(16,14,20,0.62)'; ctx.fillRect(0, 262, VW, 170);
+  ctx.textAlign = 'center';
+  ctx.fillStyle = '#ffcb05';
+  ctx.font = 'bold 42px "Hiragino Maru Gothic ProN", sans-serif';
+  ctx.fillText('ダックスの三軒茶屋大冒険', VW / 2, 300);
+  ctx.fillStyle = '#ffffff';
+  ctx.font = '17px "Hiragino Maru Gothic ProN", sans-serif';
+  ctx.fillText('ジャーキーを集めて、ヒゲおじさんをやっつけて、ご主人を助けよう！', VW / 2, 334);
+  ctx.fillStyle = Math.floor(tick / 25) % 2 ? '#7fe08a' : '#ffffff';
+  ctx.font = 'bold 20px "Hiragino Maru Gothic ProN", sans-serif';
+  ctx.fillText(K('Space キーでスタート', '画面をタップしてスタート'), VW / 2, 380);
+  if (save.best > 0) {
+    ctx.fillStyle = 'rgba(255,255,255,0.7)';
+    ctx.font = '14px "Hiragino Maru Gothic ProN", sans-serif';
+    ctx.fillText('ベストスコア ' + save.best, VW / 2, 412);
+  }
+}
+
+// ------------------------------------------------------------- ステージ選択
+function selectableStages() {
+  const list = STAGES.map((s, i) => ({ def: s, index: i, locked: !stageUnlocked(i) }));
+  if (save.hiddenFound) list.push({ def: HIDDEN, index: -1, locked: false });
+  return list;
+}
+
+function drawSelect() {
+  TH = THEMES.night; curStage = null;
+  drawBackground(tick * 0.2);
+  ctx.fillStyle = 'rgba(12,12,20,0.7)'; ctx.fillRect(0, 0, VW, VH);
+
+  ctx.textAlign = 'center';
+  ctx.fillStyle = '#ffcb05';
+  ctx.font = 'bold 28px "Hiragino Maru Gothic ProN", sans-serif';
+  ctx.fillText('ステージをえらぶ', VW / 2, 62);
+
+  const list = selectableStages();
+  if (selIdx >= list.length) selIdx = list.length - 1;
+  const cw = 190, gap = 18;
+  const totalW = list.length * cw + (list.length - 1) * gap;
+  let x = VW / 2 - totalW / 2;
+
+  list.forEach((s, i) => {
+    const sel = i === selIdx;
+    const y = 110, h = 230;
+    ctx.fillStyle = sel ? 'rgba(255,203,5,0.16)' : 'rgba(255,255,255,0.06)';
+    ctx.fillRect(x, y, cw, h);
+    ctx.strokeStyle = sel ? '#ffcb05' : 'rgba(255,255,255,0.25)';
+    ctx.lineWidth = sel ? 3 : 1.5;
+    ctx.strokeRect(x + 0.5, y + 0.5, cw, h);
+
+    // サムネイル
+    ctx.save();
+    ctx.beginPath(); ctx.rect(x + 12, y + 14, cw - 24, 108); ctx.clip();
+    const th = THEMES[s.def.theme];
+    const gg = ctx.createLinearGradient(0, y + 14, 0, y + 122);
+    gg.addColorStop(0, th.sky[0]); gg.addColorStop(1, th.sky[2]);
+    ctx.fillStyle = gg; ctx.fillRect(x + 12, y + 14, cw - 24, 108);
+    if (s.def.hidden) {
+      ctx.fillStyle = '#2c211b'; ctx.fillRect(x + 12, y + 14, cw - 24, 108);
+      drawManhole(x + cw / 2 - 16, y + 50, true);
+    } else if (s.index === 0) drawEchoGate(x + 26, y + 118, 0.7);
+    else if (s.index === 1) drawGorillaBuilding(x + 52, y + 118, 0.62);
+    else drawCarrotTower(x + 58, y + 118, 0.34);
+    ctx.fillStyle = th.ground[1]; ctx.fillRect(x + 12, y + 108, cw - 24, 14);
+    if (s.locked) { ctx.fillStyle = 'rgba(8,8,12,0.8)'; ctx.fillRect(x + 12, y + 14, cw - 24, 108); }
+    ctx.restore();
+
+    // 名前
+    ctx.textAlign = 'center';
+    ctx.fillStyle = s.locked ? 'rgba(255,255,255,0.35)' : '#ffffff';
+    ctx.font = 'bold 15px "Hiragino Maru Gothic ProN", sans-serif';
+    ctx.fillText(s.locked ? '？？？' : s.def.name, x + cw / 2, y + 148);
+
+    ctx.font = '12px "Hiragino Maru Gothic ProN", sans-serif';
+    if (s.locked) {
+      ctx.fillStyle = 'rgba(255,255,255,0.45)';
+      ctx.fillText('まえのステージを', x + cw / 2, y + 176);
+      ctx.fillText('クリアするとあそべる', x + cw / 2, y + 194);
+    } else {
+      const done = s.def.hidden ? save.hiddenCleared : save.cleared[s.index];
+      ctx.fillStyle = done ? '#7fe08a' : 'rgba(255,255,255,0.6)';
+      ctx.fillText(done ? '✔ クリアずみ' : '未クリア', x + cw / 2, y + 176);
+      if (s.def.boss) { ctx.fillStyle = '#ff8a9a'; ctx.fillText('ボスあり', x + cw / 2, y + 196); }
+      if (s.def.hidden) { ctx.fillStyle = '#9fe8ff'; ctx.fillText('ジャーキー大量！', x + cw / 2, y + 196); }
+    }
+    if (sel) {
+      ctx.fillStyle = '#ffcb05';
+      ctx.font = 'bold 16px "Hiragino Maru Gothic ProN", sans-serif';
+      ctx.fillText('▼', x + cw / 2, y - 8);
+    }
+    x += cw + gap;
+  });
+
+  ctx.textAlign = 'center';
+  ctx.fillStyle = 'rgba(255,255,255,0.8)';
+  ctx.font = '15px "Hiragino Maru Gothic ProN", sans-serif';
+  ctx.fillText(K('← → でえらんで Space ではじめる　／　Esc でタイトルへ',
+                 'ステージをタップ → もう一度タップではじめる'), VW / 2, 400);
+  if (!save.hiddenFound) {
+    ctx.fillStyle = 'rgba(255,255,255,0.4)';
+    ctx.font = '13px "Hiragino Maru Gothic ProN", sans-serif';
+    ctx.fillText('※ 街のどこかに かくしステージの入口があるらしい…', VW / 2, 428);
+  }
+}
+
+// ================================================================= ループ
+function loop() {
+  tick++;
+
+  if (state === 'title') {
+    drawTitle();
+    if (justPressed('Space', 'Enter', 'ArrowUp')) { state = 'select'; selIdx = 0; }
+
+  } else if (state === 'select') {
+    drawSelect();
+    const list = selectableStages();
+    if (justPressed('ArrowLeft', 'KeyA')) selIdx = (selIdx - 1 + list.length) % list.length;
+    if (justPressed('ArrowRight', 'KeyD')) selIdx = (selIdx + 1) % list.length;
+    if (justPressed('Escape')) state = 'title';
+    if (justPressed('Space', 'Enter')) {
+      const s = list[selIdx];
+      if (!s.locked) {
+        if (s.def.hidden) { loadStage(HIDDEN, -1); lives = 3; score = 0; state = 'play'; SFX.warp(); }
+        else startStage(s.index);
+      }
+    }
+
+  } else if (state === 'play') {
+    updatePlay();
+    if (state === 'play') { drawWorld(); drawHUD(); }
+
+  } else if (state === 'gameover') {
+    drawWorld(); drawHUD();
+    panel(['GAME OVER', 'ご主人はまだ待っている…', 'SCORE ' + score,
+           K('Space でもう一度　／　Esc でステージ選択',
+             'タップでもう一度　／　「もどる」でステージ選択')], '#ff7a8a');
+    if (justPressed('Space', 'Enter')) {
+      if (curStage.hidden) { loadStage(HIDDEN, -1); lives = 3; score = 0; state = 'play'; }
+      else startStage(curIndex);
+    }
+    if (justPressed('Escape')) state = 'select';
+
+  } else if (state === 'clear') {
+    drawWorld(); drawHUD();
+    const got = jerkies.filter(j => j.got).length;
+    const bonus = lives * 500;
+    const lines = [];
+    if (curStage.hidden) {
+      lines.push('ひみつ通路クリア！');
+      lines.push('ジャーキー ' + got + ' / ' + stageJerky + ' 個');
+    } else if (curStage.boss) {
+      lines.push('ご主人を助けだした！');
+      lines.push('ロン毛のヒゲおやぶんを倒した！　ジャーキー ' + got + ' / ' + stageJerky + ' 個');
+    } else {
+      lines.push('ご主人と合流！');
+      lines.push('ジャーキー ' + got + ' / ' + stageJerky + ' 個');
+    }
+    lines.push('SCORE ' + (score + bonus) + '（ライフボーナス +' + bonus + '）');
+    const hasNext = !curStage.hidden && curIndex + 1 < STAGES.length;
+    lines.push(hasNext ? K('Space でつぎのステージへ　／　Esc でステージ選択',
+                           'タップでつぎのステージへ　／　「もどる」でステージ選択')
+                       : K('Space でステージ選択へ', 'タップでステージ選択へ'));
+    panel(lines, '#7fe08a');
+    if (justPressed('Space', 'Enter')) {
+      if (hasNext) startStage(curIndex + 1);
+      else { state = 'select'; selIdx = 0; }
+    }
+    if (justPressed('Escape')) { state = 'select'; selIdx = 0; }
+  }
+
+  if (state === 'play' && justPressed('KeyR')) {
+    if (curStage.hidden) { loadStage(HIDDEN, -1); lives = 3; score = 0; }
+    else startStage(curIndex);
+  }
+  if (state === 'play' && justPressed('Escape')) { state = 'select'; }
+
+  for (const k in pressed) pressed[k] = false;
+  requestAnimationFrame(loop);
+}
+
+loadStage(STAGES[0], 0);
+lives = 3; score = 0;
+state = 'title';
+loop();
+</script>
+</body>
+</html>
