@@ -180,26 +180,26 @@ const CH = {
 START:   [_,_,_,_,_,_,_,_,_,
           '.....................JJ.......',
           '....................====......',
-          '..........JJ......JJ..........',
+          '..........JJ..H...JJ..........',
           '...P..........................', GND, GND],
 
 START2:  [_,_,_,_,_,_,_,_,
           '..................JJ..........',
           '.................====.........',
           '..........JJ..................',
-          '.........====.................',
+          '.........====......S..........',
           '...P.................E........', GND, GND],
 
 START3:  [_,_,_,_,_,_,_,_,_,
           '.......JJ..........JJ.........',
           '......====........====........',
-          _,
+          '..............H...............',
           '...P............E.............', GND, GND],
 
 PIT1:    [_,_,_,_,_,_,_,_,_,
           '..........JJJ.................',
           '.........=====................',
-          '....................JJ........',
+          '............H.......JJ........',
           '.....E..............E.........',
           '########....##################',
           '########....##################'],
@@ -207,7 +207,7 @@ PIT1:    [_,_,_,_,_,_,_,_,_,
 PIT2:    [_,_,_,_,_,_,_,_,_,
           '......JJ..........JJ..........',
           '.....=====.......=====........',
-          _,
+          '.......................F......',
           '...............E..............',
           '#####.....########.....#######',
           '#####.....########.....#######'],
@@ -215,7 +215,7 @@ PIT2:    [_,_,_,_,_,_,_,_,_,
 GAPS:    [_,_,_,_,_,_,_,_,_,
           '.....JJ..........JJJ..........',
           '....=====.......=====.........',
-          '.........................JJ...',
+          '.......H.................JJ...',
           '....................E.........',
           '###.....######.....###########',
           '###.....######.....###########'],
@@ -223,7 +223,7 @@ GAPS:    [_,_,_,_,_,_,_,_,_,
 ZIG:     [_,_,_,_,_,_,_,_,
           '.......JJ.....................',
           '......====....................',
-          '............JJ................',
+          '............JJ.......L........',
           '...........=====..............',
           '.....E..................E.....',
           '##########.....###############',
@@ -233,7 +233,7 @@ STAIR:   [_,_,_,_,_,_,_,_,
           '...............JJJ............',
           '..............=====...........',
           '........====..................',
-          '......JJ..................BB..',
+          '......JJ.......H..........BB..',
           '.......................E......', GND, GND],
 
 CLIMB:   [_,_,_,_,_,_,
@@ -241,7 +241,7 @@ CLIMB:   [_,_,_,_,_,_,
           '.............=====............',
           '..........JJ..................',
           '.........=====................',
-          '.....JJ..............JJ.......',
+          '.....JJ.......S......JJ.......',
           '....=====...........====......',
           '.........E...............E....', GND, GND],
 
@@ -251,19 +251,19 @@ HIGH:    [_,_,_,_,_,_,
           _,
           '..........JJ..................',
           '.........=====................',
-          '.....JJ.................JJ....',
+          '.....JJ........H........JJ....',
           '.....E..........E.........E...', GND, GND],
 
 CRATE:   [_,_,_,_,_,_,_,_,_,
           '.........JJJ..................',
           '........=====.................',
-          '..........BBB.......JJ........',
+          '..........BBB...L...JJ........',
           '.....E..........E.........E...', GND, GND],
 
 MANHOLE: [_,_,_,_,_,_,_,_,_,
           '..............JJJ.............',
           '............=======...........',
-          '......JJ..............BB......',
+          '......JJ.....H........BB......',
           '.......................E....M.', GND, GND],
 
 GOAL:    [_,_,_,_,_,_,_,_,
@@ -282,13 +282,13 @@ GOAL2:   [_,_,_,_,_,_,_,_,_,
 BOSSRUN: [_,_,_,_,_,_,_,_,_,
           '.....JJ.......................',
           '....=====.....................',
-          '.....................JJJ......',
+          '..........L..........JJJ......',
           '..........E...................', GND, GND],
 
 ARENA:   [_,_,_,_,_,_,_,_,_,
           '.....JJ.......................',
           '....=====.....................',
-          '.........................G....',
+          '......F..................G....',
           '.................X.......###..', GND, GND],
 };
 
@@ -324,7 +324,7 @@ const AREAS = [
     { name: 'ゴリラビル', chunks: [CH.START2, CH.HIGH, CH.GAPS, CH.GOAL2],
       landmarks: [{t:'gorilla', col:18}, {t:'shops', col:56}, {t:'gorilla', col:86}, {t:'carrot', col:110}] },
     { name: 'キャロットタワー最上階', chunks: [CH.START3, CH.CLIMB, CH.BOSSRUN, CH.ARENA],
-      boss: true, bossHp: 5, last: true,
+      boss: true, bossHp: 5, last: true, bossDrunk: true,
       landmarks: [{t:'carrotBig', col:24}, {t:'carrotBig', col:80}, {t:'gorilla', col:56}] },
   ]
 },
@@ -365,7 +365,9 @@ const SAVE_KEY = 'dachs-sancha-progress';
 const blank9 = v => Array.from({ length: TOTAL_STAGES }, () => v);
 let save = { cleared:blank9(false), perfect:blank9(false), times:blank9(0),
              hiddenFound:false, hiddenCleared:false, hiddenPerfect:false,
-             best:0, seenOpening:false, seenEnding:false };
+             best:0, seenOpening:false, seenEnding:false,
+             totalJerky:0, secretsFound:0, powerKills:0,
+             usedPowers:{}, badges:{}, ghosts:{} };
 try {
   const raw = localStorage.getItem(SAVE_KEY);
   if (raw) {
@@ -375,6 +377,7 @@ try {
       delete old.cleared; delete old.perfect; delete old.times;
     }
     save = Object.assign(save, old);
+    save.usedPowers = save.usedPowers || {}; save.badges = save.badges || {}; save.ghosts = save.ghosts || {};
   }
 } catch (e) {}
 function persist() { try { localStorage.setItem(SAVE_KEY, JSON.stringify(save)); } catch (e) {} }
@@ -396,7 +399,7 @@ function tileAt(col, row) {
   if (col >= COLS) return '.';
   return LEVEL[row][col];
 }
-const isBlock = ch => ch === '#' || ch === 'B';
+const isBlock = ch => ch === '#' || ch === 'B' || ch === 'H' || ch === 'O';
 
 // ================================================================= 描画補助
 function R(x, y, w, h, color, s, ox, oy) {
@@ -564,11 +567,11 @@ function drawDrunk(ox, oy, s, frame, squashed) {
 }
 
 const ENEMY_DRAW = { stache: drawStache, suit: drawSuit, drunk: drawDrunk };
-const ENEMY_SPEED = { stache: 1.1, suit: 1.95, drunk: 1.0 };
-const ENEMY_NAME  = { stache: 'ヒゲおじさん', suit: 'スーツのヒゲ男', drunk: '酔っぱらいのヒゲ男' };
+const ENEMY_SPEED = { stache: 1.1, suit: 2.35, drunk: 1.45 };
+const ENEMY_NAME  = { stache: 'ヒゲおじさん', suit: 'スーツのヒゲ男（突進）', drunk: '酔っぱらいのヒゲ男（跳躍）' };
 
 // -------------------- ボス：モジャモジャのロン毛で小太りのヒゲ面おじさん（28x30）
-function drawBoss(ox, oy, s, frame, flash, defeated) {
+function drawBoss(ox, oy, s, frame, flash, defeated, drunk) {
   const P = (x, y, w, h, c) => R(x, y, w, h, c, s, ox, oy);
   const F = flash ? '#ffffff' : null;
   const col = c => F || c;
@@ -634,10 +637,11 @@ function drawBoss(ox, oy, s, frame, flash, defeated) {
   P(7 + sw, 28, 6, 2, D);
   P(15 - sw, 28, 6, 2, D);
 
-  // ===== 顔
+  // ===== 顔（酔っぱらいは赤ら顔）
   P(8, 4, 12, 14, D);
-  P(9, 5, 10, 12, col(C.skin));
-  P(9, 15, 10, 2, col(C.skinD));
+  P(9, 5, 10, 12, col(drunk ? C.drunkFace : C.skin));
+  P(9, 15, 10, 2, col(drunk ? C.drunkFaceD : C.skinD));
+  if (drunk) { P(9, 10, 2, 2, C.drunkRed); P(17, 10, 2, 2, C.drunkRed); }
   P(8, 4, 12, 3, col(C.bossHair));           // 前髪
   P(13, 7, 2, 1, col(C.bossHair));
 
@@ -648,7 +652,7 @@ function drawBoss(ox, oy, s, frame, flash, defeated) {
   P(10, 9, 1, 1, C.white);
   P(16, 9, 1, 1, C.white);
   P(12, 10, 4, 3, D);                        // 団子鼻
-  P(12, 10, 4, 2, col(C.skinD));
+  P(12, 10, 4, 2, col(drunk ? C.drunkRed : C.skinD));
 
   // ===== ヒゲ面（口ヒゲとあごヒゲがつながってモジャモジャ）
   P(7, 12, 14, 8, D);
@@ -656,8 +660,18 @@ function drawBoss(ox, oy, s, frame, flash, defeated) {
   P(10, 19, 8, 3, D);
   P(10, 19, 8, 2, C.bossStache);
   P(12, 14, 4, 1, '#5b3a2a');                // 口
-  P(9, 12, 2, 2, col(C.skin));               // ほおの肌を少し残す
-  P(17, 12, 2, 2, col(C.skin));
+  P(9, 12, 2, 2, col(drunk ? C.drunkFace : C.skin));   // ほおの肌を少し残す
+  P(17, 12, 2, 2, col(drunk ? C.drunkFace : C.skin));
+
+  // ===== 酔っぱらいの証：デカいジョッキと千鳥足の湯気
+  if (drunk) {
+    P(23 - sw, 12, 7, 8, D);
+    P(24 - sw, 13, 5, 6, C.beer);
+    P(24 - sw, 12, 5, 2, C.beerFoam);
+    P(29 - sw, 14, 2, 4, D);
+    P(2, 1, 2, 2, C.beerFoam);                        // ふわふわ
+    P(24, 2, 2, 2, C.beerFoam);
+  }
 }
 
 // ------------------------------------------------ ジャーキー（10x8）
@@ -669,6 +683,38 @@ function drawJerky(ox, oy, s) {
   P(2, 2, 5, 1, C.jerkyL);
   P(3, 4, 4, 1, C.jerkyD);
   P(7, 3, 1, 2, C.jerkyD);
+}
+
+// ------------------------------------------------ パワーアップアイテム
+const POWERS = {
+  long:   { name:'ロングフォル', short:'ながい',   color:'#ff9f43', color2:'#ffd7a0',
+            desc:'からだが伸びる。1回だけダメージを防ぐ' },
+  spring: { name:'ばねの足',     short:'ばね',     color:'#4fc16a', color2:'#b6f0c2',
+            desc:'ジャンプ力アップ' },
+  dash:   { name:'韋駄天',       short:'いだてん', color:'#3fa9f5', color2:'#b7e2ff',
+            desc:'走る速さアップ' },
+};
+const ITEM_OF = { L:'long', S:'spring', F:'dash' };
+
+// 12x12 のアイテム（缶詰風のパッケージ）
+function drawItem(ox, oy, s, kind, t) {
+  const P = (x, y, w, h, c) => R(x, y, w, h, c, s, ox, oy);
+  const pw = POWERS[kind];
+  P(1, 1, 10, 10, C.dark);
+  P(2, 2, 8, 8, pw.color);
+  P(2, 2, 8, 2, pw.color2);
+  P(0, 4, 12, 4, C.dark);
+  P(0, 5, 12, 2, pw.color);
+  if (kind === 'long') {                      // 伸びた胴のマーク
+    P(3, 5, 6, 2, '#fff8ec'); P(3, 4, 2, 1, '#fff8ec'); P(7, 4, 2, 1, '#fff8ec');
+  } else if (kind === 'spring') {             // ばねのマーク
+    P(4, 3, 4, 1, '#fff8ec'); P(3, 5, 6, 1, '#fff8ec');
+    P(4, 7, 4, 1, '#fff8ec'); P(5, 9, 2, 1, '#fff8ec');
+  } else {                                    // スピードのマーク
+    P(6, 3, 3, 1, '#fff8ec'); P(4, 5, 5, 1, '#fff8ec'); P(2, 7, 6, 1, '#fff8ec');
+  }
+  // きらり
+  if (Math.floor(t / 24) % 2) { P(10, 0, 2, 1, '#ffffff'); P(11, 0, 1, 2, '#ffffff'); }
 }
 
 // ------------------------------------------------ ご主人（14x26）
@@ -769,12 +815,16 @@ function drawTile(ch, px, py) {
     ctx.fillStyle = '#c98b4e'; ctx.fillRect(px + 1, py + 1, T - 2, 9);
     ctx.fillStyle = '#a86d38'; ctx.fillRect(px + 1, py + 7, T - 2, 3);
     ctx.fillStyle = '#e0a865'; ctx.fillRect(px + 1, py + 1, T - 2, 2);
-  } else if (ch === 'B') {
+  } else if (ch === 'B' || ch === 'H') {
     ctx.fillStyle = '#2a2018'; ctx.fillRect(px, py, T, T);
     ctx.fillStyle = '#b98246'; ctx.fillRect(px + 2, py + 2, T - 4, T - 4);
     ctx.fillStyle = '#96652f';
     ctx.fillRect(px + 2, py + 14, T - 4, 3);
     ctx.fillRect(px + 14, py + 2, 3, T - 4);
+  } else if (ch === 'O') {                       // 叩いたあとの空き箱
+    ctx.fillStyle = '#2a2018'; ctx.fillRect(px, py, T, T);
+    ctx.fillStyle = '#7d5a33'; ctx.fillRect(px + 2, py + 2, T - 4, T - 4);
+    ctx.fillStyle = '#5e421f'; ctx.fillRect(px + 6, py + 6, T - 12, T - 12);
   }
 }
 
@@ -1182,7 +1232,10 @@ cv.addEventListener('pointerdown', e => {
     const b = OPENING_BTN;
     if (x >= b.x && x <= b.x + b.w && y >= b.y && y <= b.y + b.h) { startStory(); return; }
   }
+  if (state === 'badges') { state = 'select'; return; }
   if (state === 'select') {
+    const bb = BADGE_BTN;
+    if (x >= bb.x && x <= bb.x + bb.w && y >= bb.y && y <= bb.y + bb.h) { state = 'badges'; return; }
     for (let a = 0; a < 3; a++) for (let c = 0; c < 3; c++) {
       const r2 = cellRect(a, c);
       if (x >= r2.x && x <= r2.x + r2.w && y >= r2.y && y <= r2.y + r2.h) {
@@ -1224,7 +1277,7 @@ function moveEntity(e) {
     const ch = tileAt(c, r);
     if (isBlock(ch)) {
       if (e.vy > 0) { e.y = r * T - e.h; e.vy = 0; e.onGround = true; }
-      else if (e.vy < 0) { e.y = (r + 1) * T; e.vy = 0; }
+      else if (e.vy < 0) { e.y = (r + 1) * T; e.vy = 0; if (e.isPlayer) bumpBlock(c, r); }
     } else if (ch === '=' && e.vy > 0 && prevBottom <= r * T + 2) {
       e.y = r * T - e.h; e.vy = 0; e.onGround = true;
     }
@@ -1238,6 +1291,8 @@ const POWER_TIME = 480;     // 無敵の長さ（フレーム）
 
 let state = 'title';
 let player, enemies, jerkies, owner, boss, manholes, particles;
+let items = [], secrets = [], popups = [];
+let ghostPath = [], ghostPlay = null, runNoDamage = true, runBossHit = false;
 let cam, lives, score, tick = 0, msgTimer = 0, msgText = '';
 let curArea = null, stageTimer = 0, clearScore = 0;
 let selRow = 0, selCol = 0;                 // ステージ選択のカーソル（行=エリア）
@@ -1258,8 +1313,10 @@ function loadStage(def, index) {
   const enemyKind = def.enemy || (curArea && curArea.enemy) || 'stache';
   const bossHp = def.bossHp || 3;
   enemies = []; jerkies = []; manholes = []; particles = []; owner = null; boss = null;
-  player = { x: 64, y: 300, w: 44, h: 32, vx: 0, vy: 0, dir: 1,
-             onGround: false, coyote: 0, buffer: 0, inv: 0, anim: 0 };
+  items = []; secrets = []; popups = [];
+  player = { x: 64, y: 300, w: 44, h: 32, vx: 0, vy: 0, dir: 1, isPlayer: true,
+             onGround: false, coyote: 0, buffer: 0, inv: 0, anim: 0,
+             power: 'none', powerFlash: 0 };
 
   for (let r = 0; r < ROWS; r++) for (let c = 0; c < COLS; c++) {
     const ch = LEVEL[r][c];
@@ -1270,12 +1327,18 @@ function loadStage(def, index) {
     else if (ch === 'J') jerkies.push({ x:c*T+6, y:r*T+8, w:20, h:16, got:false, ph:(c*7+r*13)%60 });
     else if (ch === 'G') owner = { x:c*T, y:r*T-26, w:32, h:58 };
     else if (ch === 'M') manholes.push({ x:c*T, y:r*T, w:32, h:32 });
+    else if (ITEM_OF[ch]) { items.push({ x:c*T+7, y:r*T+8, w:18, h:18, kind:ITEM_OF[ch], got:false, ph:(c*11)%60 });
+                            LEVEL[r] = LEVEL[r].slice(0,c) + '.' + LEVEL[r].slice(c+1); }
+    else if (ch === 'H') secrets.push({ col:c, row:r, opened:false });
     else if (ch === 'X') boss = { x:c*T, y:r*T-48, w:64, h:80, vx:1.4, vy:0, onGround:false,
                                   hitWall:false, hp:bossHp, maxHp:bossHp, inv:0, alive:true,
-                                  jumpCd:110, dead:0 };
+                                  jumpCd:110, dead:0, drunk: !!def.bossDrunk };
   }
   stageJerky = jerkies.length;
+  player.power = 'none'; player.powerFlash = 0;
   player.safeX = player.x; player.safeY = player.y;
+  ghostPath = []; ghostPlay = (!def.hidden && save.ghosts && save.ghosts[index]) || null;
+  runNoDamage = true; runBossHit = false;
   cam = 0; powerCount = 0; powerTimer = 0; msgTimer = 0; msgText = '';
   stageTimer = 0;
   if (boss) SFX.boss();
@@ -1316,6 +1379,56 @@ function drawParticles(ox) {
   }
 }
 
+// ================================================================= 実績バッジ
+const BADGES = [
+  { id:'power10',   name:'きらきら無双',       desc:'無敵モードで敵を10体たおす' },
+  { id:'jerky500',  name:'ジャーキーマスター', desc:'ジャーキーを累計500個あつめる' },
+  { id:'bossNoDmg', name:'無傷のフォル',       desc:'ボスをノーダメージで倒す' },
+  { id:'noDamage',  name:'かすり傷ひとつなく', desc:'1ステージをノーダメージでクリア' },
+  { id:'speedrun',  name:'韋駄天フォル',       desc:'1ステージを45秒以内にクリア' },
+  { id:'secret10',  name:'かくしジャーキー発見', desc:'かくしジャーキーを10個見つける' },
+  { id:'itemAll',   name:'アイテムコンプ',     desc:'3種のパワーアップを全部つかう' },
+  { id:'hidden',    name:'マンホールの向こう', desc:'かくしステージを見つける' },
+  { id:'allClear',  name:'ご主人を助けだした', desc:'全9ステージをクリアする' },
+  { id:'allPerfect',name:'ひとつも残さない',   desc:'全9ステージで★ジャーキー全取得' },
+];
+
+function unlockBadge(id) {
+  if (save.badges[id]) return;
+  save.badges[id] = true; persist();
+  badgeToast.push({ id, life: 200 });
+  SFX.power();
+}
+function checkBadges() {
+  if (save.powerKills >= 10) unlockBadge('power10');
+  if (save.totalJerky >= 500) unlockBadge('jerky500');
+  if (save.secretsFound >= 10) unlockBadge('secret10');
+  if (save.usedPowers.long && save.usedPowers.spring && save.usedPowers.dash) unlockBadge('itemAll');
+  if (save.hiddenFound) unlockBadge('hidden');
+  if (clearedCount() >= TOTAL_STAGES) unlockBadge('allClear');
+  if (perfectCount() >= TOTAL_STAGES) unlockBadge('allPerfect');
+}
+const badgeCount = () => BADGES.filter(b => save.badges[b.id]).length;
+let badgeToast = [];
+
+// ================================================================= かくしジャーキー
+function bumpBlock(c, r) {
+  const sec = secrets.find(x => x.col === c && x.row === r && !x.opened);
+  if (!sec) return;
+  sec.opened = true;
+  LEVEL[r] = LEVEL[r].slice(0, c) + 'O' + LEVEL[r].slice(c + 1);
+  // 金色のかくしジャーキーが飛び出す
+  jerkies.push({ x: c * T + 6, y: r * T - 24, w: 20, h: 16, got: false, ph: 0, secret: true });
+  save.secretsFound = (save.secretsFound || 0) + 1;
+  persist(); checkBadges();
+  for (let i = 0; i < 14; i++) spawnSparkle(c * T + 16, r * T + 8, '#ffe07a');
+  flashMsg('かくしジャーキーを見つけた！');
+  SFX.power();
+}
+
+// ポップアップ表示（アイテム取得など）
+function popup(x, y, text, color) { popups.push({ x, y, text, color, life: 70 }); }
+
 // ================================================================= 更新
 function updatePlay() {
   const p = player;
@@ -1324,7 +1437,8 @@ function updatePlay() {
   if (held('ArrowRight', 'KeyD')) ax += 1;
   if (ax !== 0) {
     p.vx += ax * RUN_ACC;
-    const mx = powerTimer > 0 ? RUN_MAX * 1.25 : RUN_MAX;
+    let mx = RUN_MAX * (p.power === 'dash' ? 1.45 : 1);
+    if (powerTimer > 0) mx *= 1.25;
     p.vx = Math.max(-mx, Math.min(mx, p.vx));
     p.dir = ax; p.anim += Math.abs(p.vx) * 0.09;
   } else {
@@ -1336,7 +1450,8 @@ function updatePlay() {
   if (p.buffer > 0) p.buffer--;
   if (p.onGround) p.coyote = 6; else if (p.coyote > 0) p.coyote--;
   if (p.buffer > 0 && p.coyote > 0) {
-    p.vy = JUMP_V; p.buffer = 0; p.coyote = 0; p.onGround = false; SFX.jump();
+    p.vy = JUMP_V * (p.power === 'spring' ? 1.17 : 1);
+    p.buffer = 0; p.coyote = 0; p.onGround = false; SFX.jump();
   }
   if (p.vy < -4 && !held('Space', 'ArrowUp', 'KeyW')) p.vy = -4;
   p.vy = Math.min(MAX_FALL, p.vy + GRAV);
@@ -1367,8 +1482,18 @@ function updatePlay() {
   for (const e of enemies) {
     if (!e.alive) { if (e.dead > 0) e.dead--; continue; }
     e.hitWall = false;
-    if (e.kind === 'drunk' && e.onGround && --e.jumpCd <= 0) {
-      e.vy = -8.4; e.jumpCd = 80 + (tick % 50);          // ふらふら跳ねる
+    const dx = (player.x + player.w / 2) - (e.x + e.w / 2);
+    if (e.kind === 'drunk') {
+      if (e.onGround && --e.jumpCd <= 0) {
+        e.vy = -10.6; e.jumpCd = 46 + (tick % 30);            // よく跳ねる
+        e.vx = (dx > 0 ? 1 : -1) * ENEMY_SPEED.drunk * 1.5;   // 跳びながら寄ってくる
+      }
+      e.vx += Math.sin(tick * 0.07 + e.x) * 0.02;             // 千鳥足
+    } else if (e.kind === 'suit') {
+      // 視界に入ると突進してくる
+      const see = Math.abs(dx) < 230 && Math.abs((player.y) - e.y) < 60;
+      if (see && !e.charge) { e.charge = 70; e.vx = (dx > 0 ? 1 : -1) * ENEMY_SPEED.suit * 1.7; }
+      if (e.charge > 0 && --e.charge === 0) e.vx = Math.sign(e.vx) * ENEMY_SPEED.suit;
     }
     e.vy = Math.min(MAX_FALL, e.vy + GRAV);
     moveEntity(e);
@@ -1384,6 +1509,7 @@ function updatePlay() {
     if (overlap(p, e)) {
       if (powerTimer > 0) {
         e.alive = false; e.dead = 40; score += 300;
+        save.powerKills = (save.powerKills || 0) + 1; checkBadges();
         for (let i = 0; i < 8; i++) spawnSparkle(e.x + 14, e.y + 16, '#ffd34d');
         SFX.stomp();
       } else if (p.vy > 0 && (p.y + p.h) - e.y < 22) {
@@ -1400,8 +1526,13 @@ function updatePlay() {
   for (const j of jerkies) {
     if (j.got) continue;
     if (overlap(p, j)) {
-      j.got = true; score += 100; SFX.jerky();
-      for (let i = 0; i < 4; i++) spawnSparkle(j.x + 10, j.y + 8, '#ffd34d');
+      j.got = true;
+      score += j.secret ? 500 : 100;
+      save.totalJerky = (save.totalJerky || 0) + 1;
+      SFX.jerky();
+      for (let i = 0; i < (j.secret ? 12 : 4); i++) spawnSparkle(j.x + 10, j.y + 8, '#ffd34d');
+      if (j.secret) popup(j.x, j.y - 10, '+500', '#ffe07a');
+      checkBadges();
       powerCount++;
       if (powerCount >= POWER_NEED) {
         powerCount = 0; powerTimer = POWER_TIME;
@@ -1423,6 +1554,31 @@ function updatePlay() {
     }
   }
 
+  // --- パワーアップアイテム
+  for (const it of items) {
+    if (it.got) continue;
+    if (overlap(p, it)) {
+      it.got = true;
+      p.power = it.kind; p.powerFlash = 40;
+      save.usedPowers[it.kind] = true; persist(); checkBadges();
+      score += 300;
+      popup(it.x, it.y - 12, POWERS[it.kind].name + '！', POWERS[it.kind].color2);
+      flashMsg(POWERS[it.kind].name + '　' + POWERS[it.kind].desc);
+      for (let i = 0; i < 18; i++) spawnSparkle(it.x + 9, it.y + 9, POWERS[it.kind].color2);
+      SFX.power();
+    }
+  }
+  if (p.powerFlash > 0) p.powerFlash--;
+  if (p.power !== 'none' && tick % 4 === 0)
+    spawnSparkle(p.x + 8 + Math.random() * 28, p.y + 24, POWERS[p.power].color2);
+
+  // --- ゴースト（自己ベストの走りを記録・再生）
+  if (stageTimer % 5 === 0 && ghostPath.length < 3000)
+    ghostPath.push(Math.round(p.x), Math.round(p.y));
+
+  for (let i = popups.length - 1; i >= 0; i--) { popups[i].y -= 0.7; if (--popups[i].life <= 0) popups.splice(i, 1); }
+  for (let i = badgeToast.length - 1; i >= 0; i--) if (--badgeToast[i].life <= 0) badgeToast.splice(i, 1);
+
   updateParticles();
   if (msgTimer > 0) msgTimer--;
 
@@ -1437,7 +1593,8 @@ function updateBoss() {
   b.hitWall = false;
 
   // プレイヤーを追いかける
-  const speed = 1.4 + (3 - b.hp) * 0.5;
+  let speed = 1.4 + (b.maxHp - b.hp) * 0.45;
+  if (b.drunk) speed *= 1 + Math.sin(tick * 0.05) * 0.45;      // 千鳥足でふらつく
   b.vx = (p.x + p.w / 2 < b.x + b.w / 2) ? -speed : speed;
 
   b.jumpCd--;
@@ -1458,13 +1615,16 @@ function updateBoss() {
       hitBoss(1);
       p.vy = -10;
     } else if (!stomping && p.inv <= 0) {
+      const before = lives;
       damage(false);
+      if (lives !== before || p.power === 'none') runBossHit = true;
     }
   }
 }
 
 function hitBoss(n) {
   const b = boss;
+  if (b.hp <= 0) return;
   b.hp -= n; b.inv = 80;
   score += 500;
   for (let i = 0; i < 16; i++) spawnSparkle(b.x + 28, b.y + 30, '#ff9a5c');
@@ -1480,6 +1640,7 @@ function hitBoss(n) {
 
 function clearStage() {
   SFX.clear();
+  let bestUpdated = false;
   const perfect = jerkies.every(j => j.got);
   if (curStage.hidden) {
     save.hiddenCleared = true;
@@ -1488,10 +1649,21 @@ function clearStage() {
     save.cleared[curIndex] = true;
     if (perfect) save.perfect[curIndex] = true;
     // ベストタイム（速いほうを残す）
-    if (!save.times[curIndex] || stageTimer < save.times[curIndex]) save.times[curIndex] = stageTimer;
+    if (!save.times[curIndex] || stageTimer < save.times[curIndex]) {
+      save.times[curIndex] = stageTimer; bestUpdated = true;
+    }
   }
   const total = score + lives * 500;
   if (total > save.best) save.best = total;
+
+  if (!curStage.hidden) {
+    // ベスト更新時だけゴーストを残す（サイズ節約のため間引いて保存）
+    if (bestUpdated) save.ghosts[curIndex] = ghostPath.slice(0, 3000);
+  }
+  if (runNoDamage) unlockBadge('noDamage');
+  if (stageTimer <= 45 * 60) unlockBadge('speedrun');
+  if (curStage.boss && !runBossHit) unlockBadge('bossNoDmg');
+  checkBadges();
   persist();
   // ラスボスを倒したらエンディングへ
   if (curStage.last) { clearScore = total; startEnding(); }
@@ -1499,6 +1671,16 @@ function clearStage() {
 }
 
 function damage(fell) {
+  // ロングフォルは1回だけダメージを防ぐ
+  if (!fell && player.power === 'long') {
+    player.power = 'none'; player.inv = 90; player.powerFlash = 30;
+    flashMsg('ロングフォルが身代わりになった！');
+    for (let i = 0; i < 16; i++) spawnSparkle(player.x + 22, player.y + 16, '#ffd7a0');
+    SFX.stomp();
+    return;
+  }
+  runNoDamage = false;
+  player.power = 'none';
   lives--; SFX.hurt(); powerCount = 0; powerTimer = 0;
   if (lives <= 0) { state = 'gameover'; SFX.over(); return; }
   player.inv = 90;
@@ -1514,7 +1696,7 @@ function drawWorld() {
   const cEnd = Math.min(COLS - 1, Math.ceil((cam + VW) / T));
   for (let r = 0; r < ROWS; r++) for (let c = cStart; c <= cEnd; c++) {
     const ch = LEVEL[r][c];
-    if (ch === '#' || ch === '=' || ch === 'B') drawTile(ch, ox + c * T, r * T);
+    if (ch === '#' || ch === '=' || ch === 'B' || ch === 'H' || ch === 'O') drawTile(ch, ox + c * T, r * T);
   }
 
   for (const m of manholes) drawManhole(ox + m.x, m.y, overlap(player, m));
@@ -1522,7 +1704,35 @@ function drawWorld() {
   for (const j of jerkies) {
     if (j.got) continue;
     if (j.x + 60 < cam || j.x - 60 > cam + VW) continue;
-    drawJerky(ox + j.x, j.y + Math.sin((tick + j.ph) * 0.09) * 3, 2);
+    const by = j.y + Math.sin((tick + j.ph) * 0.09) * 3;
+    if (j.secret) {
+      ctx.fillStyle = 'rgba(255,224,122,' + (0.25 + Math.sin(tick * 0.12) * 0.15) + ')';
+      ctx.fillRect(ox + j.x - 8, by - 8, 36, 32);
+    }
+    drawJerky(ox + j.x, by, 2);
+  }
+
+  // パワーアップアイテム
+  for (const it of items) {
+    if (it.got) continue;
+    if (it.x + 60 < cam || it.x - 60 > cam + VW) continue;
+    const by = it.y + Math.sin((tick + it.ph) * 0.08) * 4;
+    const pw = POWERS[it.kind];
+    const gr = ctx.createRadialGradient(ox + it.x + 9, by + 9, 3, ox + it.x + 9, by + 9, 26);
+    gr.addColorStop(0, pw.color2 + 'aa'); gr.addColorStop(1, pw.color2 + '00');
+    ctx.fillStyle = gr; ctx.fillRect(ox + it.x - 17, by - 17, 52, 52);
+    drawItem(ox + it.x - 3, by - 3, 2, it.kind, tick);
+  }
+
+  // ゴースト（自己ベストの走り）
+  if (ghostPlay && ghostPlay.length >= 2) {
+    const gi = Math.min(Math.floor(stageTimer / 5), ghostPlay.length / 2 - 1) * 2;
+    const gx = ghostPlay[gi], gy = ghostPlay[gi + 1];
+    if (!(gx + 80 < cam || gx - 80 > cam + VW)) {
+      ctx.save(); ctx.globalAlpha = 0.32;
+      drawDog(ox + gx - 4, gy, 2, Math.floor(tick / 8) % 2, false, false);
+      ctx.restore();
+    }
   }
 
   if (owner && !(owner.x + 140 < cam || owner.x - 140 > cam + VW)) {
@@ -1556,8 +1766,8 @@ function drawWorld() {
     const f = Math.floor(tick / 8) % 2;
     const flash = boss.inv > 0 && Math.floor(tick / 4) % 2 === 0;
     ctx.save();
-    if (boss.vx > 0) { ctx.translate(ox + boss.x + boss.w + 10, boss.y - 10); ctx.scale(-1, 1); drawBoss(0, 0, 3, f, flash, !boss.alive); }
-    else drawBoss(ox + boss.x - 10, boss.y - 10, 3, f, flash, !boss.alive);
+    if (boss.vx > 0) { ctx.translate(ox + boss.x + boss.w + 10, boss.y - 10); ctx.scale(-1, 1); drawBoss(0, 0, 3, f, flash, !boss.alive, boss.drunk); }
+    else drawBoss(ox + boss.x - 10, boss.y - 10, 3, f, flash, !boss.alive, boss.drunk);
     ctx.restore();
   }
 
@@ -1574,9 +1784,22 @@ function drawWorld() {
     }
     const walking = Math.abs(p.vx) > 0.4 && p.onGround;
     const f = !p.onGround ? 1 : (walking ? Math.floor(p.anim) % 2 : 0);
+    const stretch = p.power === 'long' ? 1.3 : 1;          // ロングフォルは胴が伸びる
+    const flash = p.powerFlash > 0 && Math.floor(tick / 3) % 2 === 0;
+    if (p.power !== 'none') {                              // パワーアップ中のオーラ
+      const pw = POWERS[p.power], gx = ox + p.x + 22, gy = p.y + 16, rad = 42;
+      const gl = ctx.createRadialGradient(gx, gy, 4, gx, gy, rad);
+      gl.addColorStop(0, pw.color2 + '66'); gl.addColorStop(1, pw.color2 + '00');
+      ctx.fillStyle = gl; ctx.fillRect(gx - rad, gy - rad, rad * 2, rad * 2);
+    }
     ctx.save();
-    if (p.dir < 0) { ctx.translate(ox + p.x + p.w + 4, p.y); ctx.scale(-1, 1); drawDog(0, 0, 2, f, false, powerTimer > 0); }
-    else drawDog(ox + p.x - 4, p.y, 2, f, false, powerTimer > 0);
+    if (p.dir < 0) {
+      ctx.translate(ox + p.x + p.w + 4, p.y); ctx.scale(-stretch, 1);
+      drawDog(0, 0, 2, f, flash, powerTimer > 0);
+    } else {
+      ctx.translate(ox + p.x + p.w + 4, p.y); ctx.scale(stretch, 1);
+      drawDog(-(p.w + 8) / 1, 0, 2, f, flash, powerTimer > 0);
+    }
     ctx.restore();
   }
 }
@@ -1644,13 +1867,60 @@ function drawHUD() {
     ctx.textAlign = 'center';
     ctx.fillStyle = 'rgba(20,16,12,0.6)'; ctx.fillRect(VW / 2 - 130, 48, 260, 30);
     ctx.fillStyle = '#ffffff'; ctx.font = 'bold 13px "Hiragino Maru Gothic ProN", sans-serif';
-    ctx.fillText('ロン毛のヒゲおやぶん', VW / 2, 61);
+    ctx.fillText(boss.drunk ? '酔っぱらいのロン毛ヒゲおやぶん' : 'ロン毛のヒゲおやぶん', VW / 2, 61);
     const n = boss.maxHp, bw = Math.min(36, 220 / n - 6);
     for (let i = 0; i < n; i++) {
       ctx.fillStyle = i < boss.hp ? '#ff4d5e' : 'rgba(255,255,255,0.2)';
       ctx.fillRect(VW / 2 - (n * (bw + 6) - 6) / 2 + i * (bw + 6), 66, bw, 7);
     }
   }
+
+  // 取得したパワーアップの表示
+  if (player.power !== 'none') {
+    const pw = POWERS[player.power];
+    ctx.fillStyle = 'rgba(20,16,12,0.7)'; ctx.fillRect(14, 46, 116, 24);
+    ctx.strokeStyle = pw.color; ctx.lineWidth = 2; ctx.strokeRect(15, 47, 114, 22);
+    drawItem(19, 50, 1.5, player.power, tick);
+    ctx.fillStyle = pw.color2; ctx.textAlign = 'left';
+    ctx.font = 'bold 12px "Hiragino Maru Gothic ProN", sans-serif';
+    ctx.fillText(pw.name, 42, 62);
+  }
+
+  // ゴーストとのタイム差
+  if (ghostPlay && ghostPlay.length >= 2) {
+    ctx.textAlign = 'left';
+    ctx.fillStyle = 'rgba(255,255,255,0.45)';
+    ctx.font = '11px "Hiragino Maru Gothic ProN", sans-serif';
+    ctx.fillText('👻 ベストの走りと競争中', 14, player.power !== 'none' ? 84 : 60);
+  }
+
+  // ポップアップ（+500 など）
+  const ox2 = -Math.round(cam);
+  for (const q of popups) {
+    ctx.textAlign = 'center';
+    ctx.globalAlpha = Math.min(1, q.life / 30);
+    ctx.fillStyle = q.color || '#fff';
+    ctx.font = 'bold 15px "Hiragino Maru Gothic ProN", sans-serif';
+    ctx.fillText(q.text, ox2 + q.x + 10, q.y);
+    ctx.globalAlpha = 1;
+  }
+
+  // 実績バッジの通知
+  badgeToast.forEach((bt, i) => {
+    const b = BADGES.find(x => x.id === bt.id);
+    const y = 96 + i * 46, a = Math.min(1, bt.life / 40);
+    ctx.globalAlpha = a;
+    ctx.fillStyle = 'rgba(20,16,12,0.85)'; ctx.fillRect(VW - 300, y, 286, 40);
+    ctx.fillStyle = '#ffcb05'; ctx.fillRect(VW - 300, y, 4, 40);
+    ctx.textAlign = 'left';
+    ctx.fillStyle = '#ffcb05';
+    ctx.font = 'bold 13px "Hiragino Maru Gothic ProN", sans-serif';
+    ctx.fillText('🏅 バッジ獲得！　' + b.name, VW - 288, y + 17);
+    ctx.fillStyle = 'rgba(255,255,255,0.75)';
+    ctx.font = '11px "Hiragino Maru Gothic ProN", sans-serif';
+    ctx.fillText(b.desc, VW - 288, y + 33);
+    ctx.globalAlpha = 1;
+  });
 
   // メッセージ
   if (msgTimer > 0) {
@@ -1864,8 +2134,77 @@ function drawSelect() {
   ctx.textAlign = 'center';
   ctx.fillStyle = 'rgba(255,255,255,0.8)';
   ctx.font = '13px "Hiragino Maru Gothic ProN", sans-serif';
-  ctx.fillText(K('← → ↑ ↓ でえらんで Space ではじめる　／　Esc でタイトルへ',
+  ctx.fillText(K('← → ↑ ↓ でえらんで Space ではじめる　／　B でバッジ　／　Esc でタイトルへ',
                  'ステージをタップ → もう一度タップではじめる'), VW / 2, VH - 8);
+
+  // バッジ画面へのボタン
+  const bb = BADGE_BTN;
+  ctx.fillStyle = 'rgba(255,203,5,0.14)'; ctx.fillRect(bb.x, bb.y, bb.w, bb.h);
+  ctx.strokeStyle = 'rgba(255,203,5,0.7)'; ctx.lineWidth = 1.5;
+  ctx.strokeRect(bb.x + 0.5, bb.y + 0.5, bb.w, bb.h);
+  ctx.fillStyle = '#ffcb05'; ctx.textAlign = 'center';
+  ctx.font = 'bold 12px "Hiragino Maru Gothic ProN", sans-serif';
+  ctx.fillText('🏅 ' + badgeCount() + '/' + BADGES.length, bb.x + bb.w / 2, bb.y + 18);
+}
+const BADGE_BTN = { x: VW - 104, y: 26, w: 88, h: 25 };
+
+// ---------------------------------------------------- 実績バッジ／コレクション画面
+function drawBadges() {
+  TH = THEMES.night; curStage = null;
+  drawBackground(tick * 0.2);
+  ctx.fillStyle = 'rgba(12,12,20,0.82)'; ctx.fillRect(0, 0, VW, VH);
+
+  ctx.textAlign = 'center';
+  ctx.fillStyle = '#ffcb05';
+  ctx.font = 'bold 22px "Hiragino Maru Gothic ProN", sans-serif';
+  ctx.fillText('🏅 実績バッジとコレクション', VW / 2, 34);
+
+  // コレクション（ジャーキー図鑑）
+  ctx.fillStyle = 'rgba(255,255,255,0.07)'; ctx.fillRect(40, 46, VW - 80, 62);
+  ctx.textAlign = 'left';
+  ctx.fillStyle = '#ffd34d';
+  ctx.font = 'bold 14px "Hiragino Maru Gothic ProN", sans-serif';
+  ctx.fillText('ジャーキー図鑑', 54, 66);
+  ctx.fillStyle = '#ffffff';
+  ctx.font = '13px "Hiragino Maru Gothic ProN", sans-serif';
+  ctx.fillText('累計 ' + (save.totalJerky || 0) + ' 個　／　かくしジャーキー ' + (save.secretsFound || 0) + ' 個'
+             + '　／　バッジ ' + badgeCount() + ' / ' + BADGES.length, 54, 88);
+  // おうちの山のプレビュー
+  const n = pileSize();
+  ctx.fillStyle = 'rgba(255,255,255,0.55)';
+  ctx.font = '11px "Hiragino Maru Gothic ProN", sans-serif';
+  ctx.textAlign = 'right';
+  ctx.fillText('おうちの山 ' + n + ' / 28', VW - 54, 66);
+  for (let i = 0; i < Math.min(14, n); i++) drawJerky(VW - 250 + i * 14, 74, 1.3);
+
+  // バッジ一覧（2列 x 5行）
+  const bw = (VW - 96) / 2, bh = 58;
+  BADGES.forEach((b, i) => {
+    const col = i % 2, row = Math.floor(i / 2);
+    const x = 48 + col * (bw + 8), y = 120 + row * (bh + 6);
+    const got = !!save.badges[b.id];
+    ctx.fillStyle = got ? 'rgba(255,203,5,0.14)' : 'rgba(255,255,255,0.05)';
+    ctx.fillRect(x, y, bw, bh);
+    ctx.strokeStyle = got ? 'rgba(255,203,5,0.7)' : 'rgba(255,255,255,0.16)';
+    ctx.lineWidth = 1.5; ctx.strokeRect(x + 0.5, y + 0.5, bw, bh);
+    // メダル
+    ctx.fillStyle = got ? '#ffcb05' : 'rgba(255,255,255,0.18)';
+    ctx.fillRect(x + 14, y + 16, 20, 20);
+    ctx.fillStyle = got ? '#a87a00' : 'rgba(0,0,0,0.2)';
+    ctx.fillRect(x + 19, y + 21, 10, 10);
+    ctx.textAlign = 'left';
+    ctx.fillStyle = got ? '#ffffff' : 'rgba(255,255,255,0.4)';
+    ctx.font = 'bold 13px "Hiragino Maru Gothic ProN", sans-serif';
+    ctx.fillText(got ? b.name : '？？？', x + 44, y + 26);
+    ctx.fillStyle = got ? 'rgba(255,255,255,0.65)' : 'rgba(255,255,255,0.3)';
+    ctx.font = '11px "Hiragino Maru Gothic ProN", sans-serif';
+    ctx.fillText(b.desc, x + 44, y + 44);
+  });
+
+  ctx.textAlign = 'center';
+  ctx.fillStyle = 'rgba(255,255,255,0.8)';
+  ctx.font = '13px "Hiragino Maru Gothic ProN", sans-serif';
+  ctx.fillText(K('Esc / B でステージ選択にもどる', 'タップでもどる'), VW / 2, VH - 8);
 }
 
 // 選択中のステージを開始
@@ -2062,6 +2401,9 @@ function houseRoom(t) {
   ctx.fillStyle = '#c9645a'; ctx.fillRect(158, GY + 10, 304, 18);
 }
 
+// 累計で集めたジャーキーの数に応じて、おうちの山が育つ（7段まで）
+function pileSize() { return Math.max(6, Math.min(28, Math.floor((save.totalJerky || 0) / 12))); }
+
 // ごはんの器と、山盛りのジャーキー
 function jerkyPile(x, y, n, t) {
   // 器
@@ -2144,7 +2486,7 @@ const ENDING = [
     houseRoom(t);
     drawOwner(560, GY - 112, 4, t % 60 < 30);
     drawDog(210, GY - 64, 4, 0, false, false);
-    jerkyPile(330, GY - 34, Math.min(28, 2 + Math.floor(t / 3)), t);
+    jerkyPile(330, GY - 34, Math.min(pileSize(), 2 + Math.floor(t / 3)), t);
     if (t > 30) speech(590, GY - 150, 'いっぱい食べていいよ');
   } },
 
@@ -2152,7 +2494,7 @@ const ENDING = [
   draw(t) {
     houseRoom(t);
     drawOwner(600, GY - 112, 4, true);
-    jerkyPile(320, GY - 34, 28, t);
+    jerkyPile(320, GY - 34, pileSize(), t);
     const b = Math.floor(t / 4) % 2;                    // 大興奮でしっぽを振る
     drawDog(300, GY - 74 - b * 6, 4, b, false, powerTimer > 0 || (t % 40 < 20));
     for (let i = 0; i < 10; i++) {
@@ -2178,12 +2520,16 @@ const ENDING = [
     ctx.fillText('フォルの三軒茶屋大冒険', VW / 2, 284);
     ctx.fillText('さいごのスコア ' + clearScore, VW / 2, 314);
     ctx.fillStyle = '#7fe08a';
-    ctx.fillText('クリアしたステージ ' + clearedCount() + ' / ' + TOTAL_STAGES +
-                 '　／　ジャーキー全取得 ' + perfectCount() + ' / ' + TOTAL_STAGES, VW / 2, 342);
-    if (perfectCount() < TOTAL_STAGES || !save.hiddenCleared) {
+    ctx.fillText('クリア ' + clearedCount() + '/' + TOTAL_STAGES +
+                 '　★全取得 ' + perfectCount() + '/' + TOTAL_STAGES +
+                 '　🏅バッジ ' + badgeCount() + '/' + BADGES.length, VW / 2, 342);
+    ctx.fillStyle = '#ffd34d';
+    ctx.fillText('あつめたジャーキー 累計 ' + (save.totalJerky || 0) + ' 個' +
+                 '　／　かくしジャーキー ' + (save.secretsFound || 0) + ' 個', VW / 2, 366);
+    if (perfectCount() < TOTAL_STAGES || !save.hiddenCleared || badgeCount() < BADGES.length) {
       ctx.fillStyle = 'rgba(255,255,255,0.7)';
       ctx.font = '14px "Hiragino Maru Gothic ProN", sans-serif';
-      ctx.fillText('まだ拾いきれていないジャーキーがあるみたい…？', VW / 2, 372);
+      ctx.fillText('まだ拾いきれていないジャーキーがあるみたい…？', VW / 2, 394);
     }
   } },
 ];
@@ -2232,7 +2578,12 @@ function loop() {
     if (justPressed('ArrowUp', 'KeyW'))    selRow = (selRow + maxRow) % (maxRow + 1);
     if (justPressed('ArrowDown', 'KeyS'))  selRow = (selRow + 1) % (maxRow + 1);
     if (justPressed('Escape')) state = 'title';
+    if (justPressed('KeyB')) state = 'badges';
     if (justPressed('Space', 'Enter')) launchSelected();
+
+  } else if (state === 'badges') {
+    drawBadges();
+    if (justPressed('Escape', 'KeyB', 'Space', 'Enter')) state = 'select';
 
   } else if (state === 'play') {
     updatePlay();
