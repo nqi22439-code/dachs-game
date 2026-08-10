@@ -312,20 +312,23 @@ TOWER:   [_,_,_,_,_,_,
           '..........=====...............',
           '.....JJ.......................',
           '....=====...........S.........',
-          '.........E...............E....', GND, GND],
+          '.........E...............E....', '############....##############',
+          '############....##############'],
 
 WAVE:    [_,_,_,_,_,_,_,_,
           '.......JJ..........JJ.........',
           '......====........====........',
           '...........JJ.................',
           '..........=====......B........',
-          '....E................E........', GND, GND],
+          '....E................E........', '##########.....###############',
+          '##########.....###############'],
 
 PILLAR:  [_,_,_,_,_,_,_,_,_,
           '.........JJ.........JJ........',
           '........====.......====.......',
           '.....BB.......H......BB.......',
-          '...E..............E...........', GND, GND],
+          '...E..............E...........', '############....##############',
+          '############....##############'],
 
 LEDGE:   [_,_,_,_,_,_,_,
           '............JJJJ..............',
@@ -333,30 +336,49 @@ LEDGE:   [_,_,_,_,_,_,_,
           '.....JJ................JJ.....',
           '....====..............====....',
           '..........L...................',
-          '.......E..............E.......', GND, GND],
+          '.......E..............E.......', '#########.....################',
+          '#########.....################'],
 
 DIP:     [_,_,_,_,_,_,_,_,_,
           '.....JJ..........JJJ..........',
           '....====........=====.........',
           '..........H...................',
           '..E......................E....',
-          '######.........###############',
-          '######.........###############'],
+          '######....####....############',
+          '######....####....############'],
 
 STEPS:   [_,_,_,_,_,_,_,_,
           '..............JJJ.............',
           '.............=====............',
           '.......JJ..............JJ.....',
           '......====............====....',
-          '...E.........F............E...', GND, GND],
+          '...E.........F............E...', '#####....########....#########',
+          '#####....########....#########'],
 
 NARROW:  [_,_,_,_,_,_,_,_,_,
           '........JJ..........JJ........',
           '.......====........====.......',
           '...........BB.....S...........',
-          '.....E.................E......',
+          '........E..........E..........',
           '####....#####....#####...#####',
           '####....#####....#####...#####'],
+
+// --- 落ちどころの多いチャンク
+CHASM:   [_,_,_,_,_,_,_,_,_,
+          '........JJ..........JJ........',
+          '.......====........====.......',
+          '..............H...............',
+          '.....E...................E....',
+          '#######.....####.....#########',
+          '#######.....####.....#########'],
+
+HOLES:   [_,_,_,_,_,_,_,_,_,
+          '.....JJ.....JJ.....JJ.........',
+          '....====...====...====........',
+          '.........S....................',
+          '..E.....................E.....',
+          '####...####...####...#########',
+          '####...####...####...#########'],
 };
 
 // --- 3エリア x 3ステージ（各エリアの3ステージ目がボス戦）
@@ -365,12 +387,12 @@ const AREAS = [
   name: '第1エリア　三軒茶屋の商店街', theme: 'day', enemy: 'stache',
   stages: [
     { name: 'エコー仲見世商店街',
-      chunks: [CH.START, CH.PIT1, CH.LEDGE, CH.MANHOLE, CH.WAVE, CH.BRIDGE, CH.STEPS, CH.GOAL],
+      chunks: [CH.START, CH.PIT1, CH.LEDGE, CH.MANHOLE, CH.WAVE, CH.BRIDGE, CH.HOLES, CH.GOAL],
       landmarks: [{t:'echo', col:16}, {t:'shops', col:48}, {t:'carrot', col:80},
                   {t:'suzuran', col:112}, {t:'shops', col:150}, {t:'carrot', col:188},
                   {t:'suzuran', col:220}] },
     { name: 'すずらん通り',
-      chunks: [CH.START2, CH.ZIG, CH.WAVE, CH.STAIR, CH.PILLAR, CH.TOWER, CH.LEDGE, CH.GOAL2],
+      chunks: [CH.START2, CH.ZIG, CH.WAVE, CH.STAIR, CH.PILLAR, CH.HOLES, CH.LEDGE, CH.GOAL2],
       landmarks: [{t:'suzuran', col:14}, {t:'shops', col:56}, {t:'suzuran', col:90},
                   {t:'carrot', col:120}, {t:'shops', col:156}, {t:'suzuran', col:190},
                   {t:'carrot', col:224}] },
@@ -385,17 +407,17 @@ const AREAS = [
   name: '第2エリア　夕暮れの大通り', theme: 'evening', enemy: 'suit',
   stages: [
     { name: '茶沢通り',
-      chunks: [CH.START, CH.GAPS, CH.WAVE, CH.CRATE, CH.NARROW, CH.LEDGE, CH.STEPS, CH.GOAL2],
+      chunks: [CH.START, CH.GAPS, CH.WAVE, CH.CRATE, CH.NARROW, CH.CHASM, CH.STEPS, CH.GOAL2],
       landmarks: [{t:'shops', col:14}, {t:'shops', col:52}, {t:'carrot', col:84},
                   {t:'shops', col:112}, {t:'tram', col:148}, {t:'shops', col:184},
                   {t:'carrot', col:218}] },
     { name: '世田谷通り',
-      chunks: [CH.START2, CH.PIT2, CH.BRIDGE, CH.HIGH, CH.TOWER, CH.PILLAR, CH.DIP, CH.GOAL],
+      chunks: [CH.START2, CH.PIT2, CH.BRIDGE, CH.HIGH, CH.TOWER, CH.CHASM, CH.DIP, CH.GOAL],
       landmarks: [{t:'tram', col:20}, {t:'shops', col:62}, {t:'gorilla', col:92},
                   {t:'shops', col:126}, {t:'tram', col:160}, {t:'gorilla', col:196},
                   {t:'carrot', col:226}] },
     { name: '国道246号線',
-      chunks: [CH.START3, CH.ZIG, CH.DIP, CH.NARROW, CH.STEPS, CH.LEDGE, CH.BOSSRUN, CH.ARENA],
+      chunks: [CH.START3, CH.ZIG, CH.DIP, CH.NARROW, CH.HOLES, CH.LEDGE, CH.BOSSRUN, CH.ARENA],
       boss: true, bossHp: 4, bossDrunk: true,
       landmarks: [{t:'elevated', col:8}, {t:'elevated', col:48}, {t:'carrot', col:70},
                   {t:'elevated', col:88}, {t:'elevated', col:128}, {t:'izakaya', col:160},
@@ -406,17 +428,17 @@ const AREAS = [
   name: '第3エリア　三軒茶屋の夜', theme: 'night', enemy: 'drunk',
   stages: [
     { name: 'クラフトビール サニティ',
-      chunks: [CH.START, CH.CRATE, CH.PILLAR, CH.CLIMB, CH.TOWER, CH.BRIDGE, CH.WAVE, CH.GOAL],
+      chunks: [CH.START, CH.CRATE, CH.PILLAR, CH.CLIMB, CH.TOWER, CH.CHASM, CH.WAVE, CH.GOAL],
       landmarks: [{t:'beer', col:16}, {t:'izakaya', col:54}, {t:'beer', col:88},
                   {t:'izakaya', col:120}, {t:'beer', col:154}, {t:'izakaya', col:190},
                   {t:'gorilla', col:222}] },
     { name: 'ゴリラビル',
-      chunks: [CH.START2, CH.HIGH, CH.STEPS, CH.GAPS, CH.NARROW, CH.DIP, CH.LEDGE, CH.GOAL2],
+      chunks: [CH.START2, CH.HIGH, CH.STEPS, CH.GAPS, CH.NARROW, CH.CHASM, CH.LEDGE, CH.GOAL2],
       landmarks: [{t:'gorilla', col:18}, {t:'shops', col:56}, {t:'gorilla', col:86},
                   {t:'carrot', col:110}, {t:'gorilla', col:148}, {t:'shops', col:184},
                   {t:'gorilla', col:216}] },
     { name: 'キャロットタワー最上階',
-      chunks: [CH.START3, CH.CLIMB, CH.TOWER, CH.PILLAR, CH.NARROW, CH.DIP, CH.BOSSRUN, CH.ARENA],
+      chunks: [CH.START3, CH.CLIMB, CH.TOWER, CH.CHASM, CH.NARROW, CH.DIP, CH.BOSSRUN, CH.ARENA],
       boss: true, bossHp: 6, last: true, bossGolden: true,
       landmarks: [{t:'carrotBig', col:24}, {t:'gorilla', col:56}, {t:'carrotBig', col:80},
                   {t:'gorilla', col:118}, {t:'carrotBig', col:152}, {t:'gorilla', col:186},
@@ -890,6 +912,18 @@ function drawFlame(ox, oy, s, t) {
   P(4, 6, 4, 1, C.fireA);
   P(5 + w, 2, 2, 2, C.fireB);                  // 舞い上がる火の粉
   P(3 - w, 9, 2, 2, C.fireC);
+}
+
+// -------------------- 酔っぱらいが投げるジョッキ（10x10）
+function drawMug(ox, oy, s) {
+  const P = (x, y, w, h, c) => R(x, y, w, h, c, s, ox, oy);
+  P(1, 1, 7, 9, C.dark);                       // ジョッキ本体
+  P(2, 3, 5, 6, C.beer);
+  P(2, 2, 5, 2, C.beerFoam);                   // あふれる泡
+  P(2, 7, 5, 2, '#c8891f');                    // 底の濃い部分
+  P(8, 3, 3, 5, C.dark);                       // 取っ手
+  P(9, 4, 1, 3, C.beer);
+  P(0, 0, 3, 2, C.beerFoam);                   // 飛び散るしぶき
 }
 
 // ------------------------------------------------ ジャーキー（10x8）
@@ -1398,6 +1432,7 @@ const SFX = {
   boss:  () => melody([[147,0.22],[139,0.22],[131,0.4]], 0.12),
   bossHit: () => { beep(220, 0.1, 'square', 0.1); setTimeout(()=>beep(110,0.22,'sawtooth',0.1), 90); },
   fire:  () => beep(90 + Math.random() * 40, 0.16, 'sawtooth', 0.05),
+  throwMug: () => { beep(300, 0.08, 'square', 0.05); setTimeout(()=>beep(200,0.1,'triangle',0.05), 70); },
 };
 
 // ================================================================= 入力
@@ -1553,7 +1588,7 @@ function loadStage(def, index) {
       boss = { x:c*T, y:r*T-48, w:64, h:80, vx:1.4, vy:0, onGround:false,
                hitWall:false, hp:bossHp, maxHp:bossHp, inv:0, alive:true,
                jumpCd:110, dead:0, drunk: !!def.bossDrunk, golden: !!def.bossGolden,
-               breathCd:150, breath:0, homeX:c*T, homeY:r*T-48 };
+               breathCd:90, breath:0, throwCd:80, homeX:c*T, homeY:r*T-48 };
       // 足場が地続きな範囲を調べて、そこから出られないようにする（穴に落ちて詰むのを防ぐ）
       const gr = r + 1;
       let lo = c, hi = c;
@@ -1827,33 +1862,42 @@ function updateBoss() {
   if (b.drunk) speed *= 1 + Math.sin(tick * 0.05) * 0.45;      // 千鳥足でふらつく
   b.vx = (p.x + p.w / 2 < b.x + b.w / 2) ? -speed : speed;
 
-  // ゴールデンレトリバーは足を止めて炎を吐く
+  // ゴールデンレトリバーは走りながらでも跳びながらでも炎を吐く
   if (b.golden) {
     if (b.breath > 0) {
       b.breath--;
-      b.vx = 0;                                        // 溜め〜発射中は動かない
+      b.vx *= 0.45;                                    // 吐いている間は少しだけ減速
       const mouthY = b.y + 26;
       const dir = b.faceDir || -1;
       const mouthX = dir < 0 ? b.x - 6 : b.x + b.w - 6;
-      if (b.breath > 24) {
+      if (b.breath > 20) {
         // 溜め：口元に火の粉が集まる
         if (tick % 3 === 0) spawnSparkle(mouthX + 9, mouthY + 6, C.fireB);
-      } else if (b.breath % 6 === 0) {
+      } else if (b.breath % 4 === 0) {
         fires.push({ x:mouthX, y:mouthY + Math.floor(Math.random() * 8) - 4,
-                     w:22, h:22, vx:dir * 5.2, life:110 });
+                     w:22, h:22, vx:dir * 5.2, vy:0, life:110, kind:'fire' });
         SFX.fire();
       }
     } else {
       b.faceDir = (p.x + p.w / 2 < b.x + b.w / 2) ? -1 : 1;
       if (--b.breathCd <= 0) {
-        b.breath = 60;                                 // 溜め36 + 発射24
-        b.breathCd = 190 - (b.maxHp - b.hp) * 22;      // 追い詰めるほど連射が速い
+        b.breath = 44;                                 // 溜め24 + 発射20
+        b.breathCd = 70 - (b.maxHp - b.hp) * 10;       // 追い詰めるほど連射が速い
       }
     }
   }
 
+  // 酔っぱらいはジョッキを放物線で投げつける
+  if (b.drunk && --b.throwCd <= 0) {
+    const dir = (p.x + p.w / 2 < b.x + b.w / 2) ? -1 : 1;
+    b.throwCd = 130 - (b.maxHp - b.hp) * 18;
+    fires.push({ x: dir < 0 ? b.x - 8 : b.x + b.w - 12, y: b.y + 4,
+                 w:20, h:20, vx: dir * 4.6, vy:-7.6, life:220, kind:'mug', spin:0 });
+    SFX.throwMug();
+  }
+
   b.jumpCd--;
-  if (b.jumpCd <= 0 && b.onGround && !(b.golden && b.breath > 0)) {
+  if (b.jumpCd <= 0 && b.onGround) {
     b.vy = -13; b.jumpCd = 150 - (3 - b.hp) * 30;
   }
   b.vy = Math.min(MAX_FALL, b.vy + GRAV);
@@ -1886,28 +1930,47 @@ function updateBoss() {
   }
 }
 
-// ボスの吐いた炎：まっすぐ飛び、壁に当たるか寿命で消える
+// ボスの飛び道具：炎はまっすぐ、ジョッキは放物線。壁や地面に当たると砕ける
+function burst(f) {
+  const c1 = f.kind === 'mug' ? C.beer : C.fireB;
+  const c2 = f.kind === 'mug' ? C.beerFoam : C.fireC;
+  for (let i = 0; i < 12; i++) spawnSparkle(f.x + 10, f.y + 10, i % 2 ? c1 : c2);
+  f.life = 0;
+}
+
 function updateFires() {
   if (!fires.length) return;
   const p = player;
   for (const f of fires) {
+    if (f.kind === 'mug') {
+      f.vy = Math.min(MAX_FALL, f.vy + GRAV * 0.6);          // ゆるやかな放物線
+      f.y += f.vy;
+      f.spin += f.vx < 0 ? -0.22 : 0.22;                     // くるくる回りながら飛ぶ
+      if (tick % 4 === 0) spawnSparkle(f.x + 10, f.y + 12, C.beer);
+    } else if (tick % 2 === 0) {
+      spawnSparkle(f.x + 11, f.y + 14, Math.random() < 0.5 ? C.fireB : C.fireC);
+    }
     f.x += f.vx;
     f.life--;
-    if (tick % 2 === 0) spawnSparkle(f.x + 11, f.y + 14, Math.random() < 0.5 ? C.fireB : C.fireC);
+    if (f.life <= 0) continue;
 
     const midRow = Math.floor((f.y + f.h / 2) / T);
     const edge = Math.floor((f.vx < 0 ? f.x : f.x + f.w) / T);
-    if (isBlock(tileAt(edge, midRow))) f.life = 0;           // 壁に当たって砕ける
-    if (f.x < -80 || f.x > LEVEL_W + 80) f.life = 0;
+    if (isBlock(tileAt(edge, midRow))) { burst(f); continue; }          // 壁に当たる
+    if (f.kind === 'mug') {
+      const botRow = Math.floor((f.y + f.h) / T);
+      if (isBlock(tileAt(Math.floor((f.x + f.w / 2) / T), botRow))) { burst(f); continue; }  // 地面で割れる
+      if (f.y > LEVEL_H + 60) { f.life = 0; continue; }                 // 穴に落ちたら消える
+    }
+    if (f.x < -80 || f.x > LEVEL_W + 80) { f.life = 0; continue; }
 
-    if (f.life > 0 && overlap(p, f)) {
+    if (overlap(p, f)) {
       if (powerTimer > 0) {
-        f.life = 0;                                          // 無敵モードなら焼き払う
-        for (let i = 0; i < 8; i++) spawnSparkle(f.x + 11, f.y + 11, C.fireA);
+        burst(f);                                            // 無敵モードなら弾き飛ばす
       } else if (p.inv <= 0) {
         const before = lives;
         damage(false);
-        f.life = 0;
+        burst(f);
         if (lives !== before || p.power === 'none') runBossHit = true;
       }
     }
@@ -2070,12 +2133,19 @@ function drawWorld() {
     ctx.restore();
   }
 
-  // ボスの炎（進行方向にのびるように向きを反転）
+  // ボスの飛び道具（炎は進行方向にのばし、ジョッキは回転させる）
   for (const fl of fires) {
     if (fl.x + 60 < cam || fl.x - 60 > cam + VW) continue;
     ctx.save();
-    if (fl.vx > 0) { ctx.translate(ox + fl.x + 24, fl.y); ctx.scale(-1, 1); drawFlame(0, 0, 2, tick); }
-    else drawFlame(ox + fl.x, fl.y, 2, tick);
+    if (fl.kind === 'mug') {
+      ctx.translate(ox + fl.x + 10, fl.y + 10);
+      ctx.rotate(fl.spin);
+      drawMug(-10, -10, 2);
+    } else if (fl.vx > 0) {
+      ctx.translate(ox + fl.x + 24, fl.y); ctx.scale(-1, 1); drawFlame(0, 0, 2, tick);
+    } else {
+      drawFlame(ox + fl.x, fl.y, 2, tick);
+    }
     ctx.restore();
   }
 
