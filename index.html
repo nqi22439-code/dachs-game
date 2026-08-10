@@ -131,6 +131,11 @@ const C = {
   drunkHair:'#4a3a2a', drunkFace:'#e8a887', drunkFaceD:'#c98a68', drunkRed:'#e0715e',
   drunkShirt:'#9fb4c4', drunkShirtD:'#7f94a4', drunkBelly:'#efd9c4',
   beer:'#e8a52c', beerFoam:'#fff6e0',
+  // ラスボス：炎を吐くゴールデンレトリバー
+  goldFur:'#e3b268', goldFurL:'#f6d89e', goldFurD:'#c1913f', goldEar:'#c99347',
+  goldEarD:'#a97733', goldMuzzle:'#f7e7c8', goldMuzzleD:'#dcc59f',
+  goldTongue:'#f08098', goldTongueD:'#cf5573', goldEye:'#5a3418',
+  fireA:'#fff6c4', fireB:'#ffc247', fireC:'#f4692a', fireD:'#c62f13',
 };
 
 // ================================================================= テーマ
@@ -290,6 +295,68 @@ ARENA:   [_,_,_,_,_,_,_,_,_,
           '....=====.....................',
           '......F..................G....',
           '.................X.......###..', GND, GND],
+
+// --- ステージを長くするための追加チャンク
+BRIDGE:  [_,_,_,_,_,_,_,_,_,
+          '.......JJ.......JJ............',
+          '......====.....====...........',
+          '............H.................',
+          '...E....................E.....',
+          '#####....######....###########',
+          '#####....######....###########'],
+
+TOWER:   [_,_,_,_,_,_,
+          '..................JJ..........',
+          '.................=====........',
+          '...........JJ.................',
+          '..........=====...............',
+          '.....JJ.......................',
+          '....=====...........S.........',
+          '.........E...............E....', GND, GND],
+
+WAVE:    [_,_,_,_,_,_,_,_,
+          '.......JJ..........JJ.........',
+          '......====........====........',
+          '...........JJ.................',
+          '..........=====......B........',
+          '....E................E........', GND, GND],
+
+PILLAR:  [_,_,_,_,_,_,_,_,_,
+          '.........JJ.........JJ........',
+          '........====.......====.......',
+          '.....BB.......H......BB.......',
+          '...E..............E...........', GND, GND],
+
+LEDGE:   [_,_,_,_,_,_,_,
+          '............JJJJ..............',
+          '...........=======............',
+          '.....JJ................JJ.....',
+          '....====..............====....',
+          '..........L...................',
+          '.......E..............E.......', GND, GND],
+
+DIP:     [_,_,_,_,_,_,_,_,_,
+          '.....JJ..........JJJ..........',
+          '....====........=====.........',
+          '..........H...................',
+          '..E......................E....',
+          '######.........###############',
+          '######.........###############'],
+
+STEPS:   [_,_,_,_,_,_,_,_,
+          '..............JJJ.............',
+          '.............=====............',
+          '.......JJ..............JJ.....',
+          '......====............====....',
+          '...E.........F............E...', GND, GND],
+
+NARROW:  [_,_,_,_,_,_,_,_,_,
+          '........JJ..........JJ........',
+          '.......====........====.......',
+          '...........BB.....S...........',
+          '.....E.................E......',
+          '####....#####....#####...#####',
+          '####....#####....#####...#####'],
 };
 
 // --- 3エリア x 3ステージ（各エリアの3ステージ目がボス戦）
@@ -297,35 +364,63 @@ const AREAS = [
 {
   name: '第1エリア　三軒茶屋の商店街', theme: 'day', enemy: 'stache',
   stages: [
-    { name: 'エコー仲見世商店街', chunks: [CH.START, CH.PIT1, CH.MANHOLE, CH.GOAL],
-      landmarks: [{t:'echo', col:16}, {t:'carrot', col:62}, {t:'suzuran', col:96}] },
-    { name: 'すずらん通り', chunks: [CH.START2, CH.ZIG, CH.STAIR, CH.GOAL2],
-      landmarks: [{t:'suzuran', col:14}, {t:'shops', col:56}, {t:'suzuran', col:90}, {t:'carrot', col:112}] },
-    { name: '三角地帯', chunks: [CH.START3, CH.PIT2, CH.ARENA], boss: true, bossHp: 3,
-      landmarks: [{t:'izakaya', col:12}, {t:'izakaya', col:44}, {t:'carrot', col:74}] },
+    { name: 'エコー仲見世商店街',
+      chunks: [CH.START, CH.PIT1, CH.LEDGE, CH.MANHOLE, CH.WAVE, CH.BRIDGE, CH.STEPS, CH.GOAL],
+      landmarks: [{t:'echo', col:16}, {t:'shops', col:48}, {t:'carrot', col:80},
+                  {t:'suzuran', col:112}, {t:'shops', col:150}, {t:'carrot', col:188},
+                  {t:'suzuran', col:220}] },
+    { name: 'すずらん通り',
+      chunks: [CH.START2, CH.ZIG, CH.WAVE, CH.STAIR, CH.PILLAR, CH.TOWER, CH.LEDGE, CH.GOAL2],
+      landmarks: [{t:'suzuran', col:14}, {t:'shops', col:56}, {t:'suzuran', col:90},
+                  {t:'carrot', col:120}, {t:'shops', col:156}, {t:'suzuran', col:190},
+                  {t:'carrot', col:224}] },
+    { name: '三角地帯',
+      chunks: [CH.START3, CH.PIT2, CH.STEPS, CH.DIP, CH.BOSSRUN, CH.ARENA],
+      boss: true, bossHp: 3,
+      landmarks: [{t:'izakaya', col:12}, {t:'izakaya', col:44}, {t:'carrot', col:74},
+                  {t:'shops', col:106}, {t:'izakaya', col:138}, {t:'carrot', col:166}] },
   ]
 },
 {
   name: '第2エリア　夕暮れの大通り', theme: 'evening', enemy: 'suit',
   stages: [
-    { name: '茶沢通り', chunks: [CH.START, CH.GAPS, CH.CRATE, CH.GOAL2],
-      landmarks: [{t:'shops', col:14}, {t:'shops', col:52}, {t:'carrot', col:84}, {t:'shops', col:106}] },
-    { name: '世田谷通り', chunks: [CH.START2, CH.PIT2, CH.HIGH, CH.GOAL],
-      landmarks: [{t:'tram', col:20}, {t:'shops', col:62}, {t:'gorilla', col:92}] },
-    { name: '国道246号線', chunks: [CH.START3, CH.ZIG, CH.BOSSRUN, CH.ARENA], boss: true, bossHp: 4,
-      landmarks: [{t:'elevated', col:8}, {t:'elevated', col:48}, {t:'elevated', col:88}, {t:'carrot', col:70}] },
+    { name: '茶沢通り',
+      chunks: [CH.START, CH.GAPS, CH.WAVE, CH.CRATE, CH.NARROW, CH.LEDGE, CH.STEPS, CH.GOAL2],
+      landmarks: [{t:'shops', col:14}, {t:'shops', col:52}, {t:'carrot', col:84},
+                  {t:'shops', col:112}, {t:'tram', col:148}, {t:'shops', col:184},
+                  {t:'carrot', col:218}] },
+    { name: '世田谷通り',
+      chunks: [CH.START2, CH.PIT2, CH.BRIDGE, CH.HIGH, CH.TOWER, CH.PILLAR, CH.DIP, CH.GOAL],
+      landmarks: [{t:'tram', col:20}, {t:'shops', col:62}, {t:'gorilla', col:92},
+                  {t:'shops', col:126}, {t:'tram', col:160}, {t:'gorilla', col:196},
+                  {t:'carrot', col:226}] },
+    { name: '国道246号線',
+      chunks: [CH.START3, CH.ZIG, CH.DIP, CH.NARROW, CH.STEPS, CH.LEDGE, CH.BOSSRUN, CH.ARENA],
+      boss: true, bossHp: 4, bossDrunk: true,
+      landmarks: [{t:'elevated', col:8}, {t:'elevated', col:48}, {t:'carrot', col:70},
+                  {t:'elevated', col:88}, {t:'elevated', col:128}, {t:'izakaya', col:160},
+                  {t:'elevated', col:194}, {t:'carrot', col:222}] },
   ]
 },
 {
   name: '第3エリア　三軒茶屋の夜', theme: 'night', enemy: 'drunk',
   stages: [
-    { name: 'クラフトビール サニティ', chunks: [CH.START, CH.CRATE, CH.CLIMB, CH.GOAL],
-      landmarks: [{t:'beer', col:16}, {t:'izakaya', col:54}, {t:'beer', col:88}] },
-    { name: 'ゴリラビル', chunks: [CH.START2, CH.HIGH, CH.GAPS, CH.GOAL2],
-      landmarks: [{t:'gorilla', col:18}, {t:'shops', col:56}, {t:'gorilla', col:86}, {t:'carrot', col:110}] },
-    { name: 'キャロットタワー最上階', chunks: [CH.START3, CH.CLIMB, CH.BOSSRUN, CH.ARENA],
-      boss: true, bossHp: 5, last: true, bossDrunk: true,
-      landmarks: [{t:'carrotBig', col:24}, {t:'carrotBig', col:80}, {t:'gorilla', col:56}] },
+    { name: 'クラフトビール サニティ',
+      chunks: [CH.START, CH.CRATE, CH.PILLAR, CH.CLIMB, CH.TOWER, CH.BRIDGE, CH.WAVE, CH.GOAL],
+      landmarks: [{t:'beer', col:16}, {t:'izakaya', col:54}, {t:'beer', col:88},
+                  {t:'izakaya', col:120}, {t:'beer', col:154}, {t:'izakaya', col:190},
+                  {t:'gorilla', col:222}] },
+    { name: 'ゴリラビル',
+      chunks: [CH.START2, CH.HIGH, CH.STEPS, CH.GAPS, CH.NARROW, CH.DIP, CH.LEDGE, CH.GOAL2],
+      landmarks: [{t:'gorilla', col:18}, {t:'shops', col:56}, {t:'gorilla', col:86},
+                  {t:'carrot', col:110}, {t:'gorilla', col:148}, {t:'shops', col:184},
+                  {t:'gorilla', col:216}] },
+    { name: 'キャロットタワー最上階',
+      chunks: [CH.START3, CH.CLIMB, CH.TOWER, CH.PILLAR, CH.NARROW, CH.DIP, CH.BOSSRUN, CH.ARENA],
+      boss: true, bossHp: 6, last: true, bossGolden: true,
+      landmarks: [{t:'carrotBig', col:24}, {t:'gorilla', col:56}, {t:'carrotBig', col:80},
+                  {t:'gorilla', col:118}, {t:'carrotBig', col:152}, {t:'gorilla', col:186},
+                  {t:'carrotBig', col:218}] },
   ]
 },
 ];
@@ -408,7 +503,8 @@ function R(x, y, w, h, color, s, ox, oy) {
 }
 
 // ------------------------------ 主人公：白いダックスフンドのフォル（26x16）
-function drawDog(ox, oy, s, frame, hurtFlash, rainbow) {
+// legEx: ばねの足で伸びる脚の長さ（スプライト単位）
+function drawDog(ox, oy, s, frame, hurtFlash, rainbow, legEx = 0) {
   const P = (x, y, w, h, c) => R(x, y, w, h, c, s, ox, oy);
   const D = hurtFlash ? '#ffffff' : C.dark;
   const hu = (tick * 7) % 360;
@@ -425,8 +521,8 @@ function drawDog(ox, oy, s, frame, hurtFlash, rainbow) {
   P(15, 0, 10, 10, D);
   P(22, 3, 4, 7, D);
   const legA = frame === 0 ? [4, 13] : [3, 14];
-  P(legA[0], 12, 4, 4, D);
-  P(legA[1], 12, 4, 4, D);
+  P(legA[0], 12, 4, 4 + legEx, D);
+  P(legA[1], 12, 4, 4 + legEx, D);
 
   P(1, 4, 3, 2, bodyL);
   P(3, 6, 15, 7, body);
@@ -455,8 +551,8 @@ function drawDog(ox, oy, s, frame, hurtFlash, rainbow) {
   P(15, 4, 4, 5, earC);
   P(16, 9, 3, 1, earC);
 
-  P(legA[0] + 1, 12, 2, 3, body);
-  P(legA[1] + 1, 12, 2, 3, body);
+  P(legA[0] + 1, 12, 2, 3 + legEx, body);
+  P(legA[1] + 1, 12, 2, 3 + legEx, body);
 }
 
 // ------------------------------------------------ ヒゲおじさん（16x20）
@@ -672,6 +768,128 @@ function drawBoss(ox, oy, s, frame, flash, defeated, drunk) {
     P(2, 1, 2, 2, C.beerFoam);                        // ふわふわ
     P(24, 2, 2, 2, C.beerFoam);
   }
+}
+
+// -------------------- ラスボス：炎を吐くゴールデンレトリバー（30x30・左向き）
+function drawGolden(ox, oy, s, frame, flash, defeated, breathing) {
+  const P = (x, y, w, h, c) => R(x, y, w, h, c, s, ox, oy);
+  const F = flash ? '#ffffff' : null;
+  const col = c => F || c;
+  const D = C.dark;
+
+  if (defeated) {
+    // 力尽きて伏せる（耳も尻尾もぺたんと垂れる）
+    P(26, 25, 5, 4, D);                          // 垂れた尻尾
+    P(27, 26, 4, 2, col(C.goldFurD));
+    P(3, 19, 25, 11, D);                         // 横たわる胴
+    P(4, 20, 23, 9, col(C.goldFur));
+    P(4, 25, 23, 4, col(C.goldFurD));
+    P(0, 21, 12, 9, D);                          // 地面についた頭とマズル
+    P(1, 22, 10, 7, col(C.goldMuzzle));
+    P(0, 22, 4, 3, C.nose);
+    P(2, 26, 4, 1, D);                           // 閉じた目
+    P(8, 19, 7, 11, D);                          // ぺたんと垂れた耳
+    P(9, 20, 5, 9, col(C.goldEarD));
+    return;
+  }
+
+  const sw = frame === 0 ? 0 : 1;                // 歩きのブレ
+
+  // ===== 尻尾（胴のつけ根からふさふさの飾り毛が立ちのぼる）※先に描いて背面に回す
+  P(25, 12, 5, 5, D);                            // つけ根（胴に重ねて繋げる）
+  P(26, 13, 4, 3, col(C.goldFur));
+  P(26, 8, 5, 6, D);
+  P(27, 9, 4, 5, col(C.goldFurL));
+  P(27, 4, 4, 5, D);                             // 先端の飾り毛
+  P(28, 5, 3, 4, col(C.goldFurL));
+
+  // ===== からだ（どっしりした胴）
+  P(13, 13, 16, 15, D);
+  P(14, 14, 14, 13, col(C.goldFur));
+  P(14, 14, 14, 3, col(C.goldFurL));             // 背中のハイライト
+  P(14, 23, 14, 4, col(C.goldFurD));             // お腹の影
+  P(22, 17, 6, 9, col(C.goldFurD));              // 後ろ足のつけ根のふくらみ
+  P(18, 24, 1, 4, col(C.goldFurD));              // 長い毛の流れ
+  P(21, 24, 1, 4, col(C.goldFurD));
+
+  // ===== 足
+  P(15 + sw, 26, 5, 4, D);
+  P(16 + sw, 27, 3, 3, col(C.goldFur));
+  P(23 - sw, 26, 5, 4, D);
+  P(24 - sw, 27, 3, 3, col(C.goldFur));
+
+  // ===== 胸の飾り毛（ゴールデンらしいふさふさ）
+  P(10, 14, 7, 13, D);
+  P(11, 15, 5, 11, col(C.goldFurL));
+  P(11, 20, 5, 3, col(C.goldFur));
+  P(11, 25, 2, 3, col(C.goldFurL));              // 毛先がぎざぎざ
+  P(14, 24, 2, 3, col(C.goldFurL));
+
+  // ===== 頭
+  P(2, 2, 14, 18, D);
+  P(3, 3, 12, 16, col(C.goldFur));
+  P(3, 3, 12, 4, col(C.goldFurL));               // 頭のてっぺんは明るい
+
+  // ===== マズル（前に突き出す）
+  P(0, 10, 8, 9, D);
+  P(1, 11, 6, 7, col(C.goldMuzzle));
+  P(1, 16, 6, 2, col(C.goldMuzzleD));
+
+  // ===== 鼻（黒くて大きい）
+  P(0, 9, 5, 4, D);
+  P(0, 10, 4, 3, C.nose);
+  P(1, 10, 1, 1, C.white);                       // 鼻のツヤ
+
+  // ===== 目と眉
+  P(6, 4, 5, 1, col(C.goldFurD));                // 眉
+  P(7, 6, 4, 4, D);
+  P(7, 6, 3, 3, C.goldEye);
+  P(7, 6, 1, 1, C.white);
+
+  // ===== たれ耳（丸くて濃い金色。頬の横に垂れる）
+  P(12, 3, 5, 2, D);
+  P(11, 5, 7, 13, D);
+  P(12, 4, 5, 2, col(C.goldFurD));
+  P(12, 6, 5, 11, col(C.goldEar));
+  P(12, 13, 5, 4, col(C.goldEarD));
+  P(13, 17, 3, 2, D);                            // 丸い耳先
+  P(13, 17, 3, 1, col(C.goldEarD));
+
+  // ===== 赤い首輪と迷子札
+  P(9, 15, 3, 8, D);
+  P(9, 16, 3, 6, '#d4443f');
+  P(9, 19, 3, 1, '#f2e2b0');
+
+  // ===== 口（炎を吐く時は大きく開く）
+  if (breathing) {
+    P(0, 14, 10, 8, D);
+    P(1, 15, 8, 6, '#78202a');                   // 口の中
+    P(1, 15, 7, 1, C.white);                     // 上の歯
+    P(1, 20, 7, 1, C.white);                     // 下の歯
+    P(2, 17, 6, 3, col(C.goldTongue));           // 舌
+    P(2, 19, 6, 1, col(C.goldTongueD));
+    P(0, 16, 2, 3, C.fireA);                     // 口元にたまる火種
+  } else {
+    P(1, 17, 7, 2, D);                           // にっと開いた口
+    P(2, 19, 5, 4, D);                           // だらんと出た舌
+    P(2, 19, 5, 3, col(C.goldTongue));
+    P(2, 21, 5, 1, col(C.goldTongueD));
+  }
+}
+
+// -------------------- ボスが吐く炎（12x12 のゆらめく塊）
+function drawFlame(ox, oy, s, t) {
+  const P = (x, y, w, h, c) => R(x, y, w, h, c, s, ox, oy);
+  const w = Math.floor(t / 4) % 2;             // ゆらぎ
+  P(1, 3 + w, 10, 6, C.fireD);
+  P(0, 4, 12, 4, C.fireD);
+  P(2, 4 + w, 8, 4, C.fireC);
+  P(1, 5, 10, 2, C.fireC);
+  P(3, 5 + w, 6, 2, C.fireB);
+  P(2, 6, 8, 1, C.fireB);
+  P(4, 6, 4, 1, C.fireA);
+  P(5 + w, 2, 2, 2, C.fireB);                  // 舞い上がる火の粉
+  P(3 - w, 9, 2, 2, C.fireC);
 }
 
 // ------------------------------------------------ ジャーキー（10x8）
@@ -1179,6 +1397,7 @@ const SFX = {
   warp:  () => melody([[262,0.1],[330,0.1],[392,0.1],[523,0.1],[659,0.22]]),
   boss:  () => melody([[147,0.22],[139,0.22],[131,0.4]], 0.12),
   bossHit: () => { beep(220, 0.1, 'square', 0.1); setTimeout(()=>beep(110,0.22,'sawtooth',0.1), 90); },
+  fire:  () => beep(90 + Math.random() * 40, 0.16, 'sawtooth', 0.05),
 };
 
 // ================================================================= 入力
@@ -1290,7 +1509,7 @@ const POWER_NEED = 10;      // ジャーキー何個で無敵になるか
 const POWER_TIME = 480;     // 無敵の長さ（フレーム）
 
 let state = 'title';
-let player, enemies, jerkies, owner, boss, manholes, particles;
+let player, enemies, jerkies, owner, boss, manholes, particles, fires = [];
 let items = [], secrets = [], popups = [];
 let ghostPath = [], ghostPlay = null, runNoDamage = true, runBossHit = false;
 let cam, lives, score, tick = 0, msgTimer = 0, msgText = '';
@@ -1313,7 +1532,7 @@ function loadStage(def, index) {
   const enemyKind = def.enemy || (curArea && curArea.enemy) || 'stache';
   const bossHp = def.bossHp || 3;
   enemies = []; jerkies = []; manholes = []; particles = []; owner = null; boss = null;
-  items = []; secrets = []; popups = [];
+  items = []; secrets = []; popups = []; fires = [];
   player = { x: 64, y: 300, w: 44, h: 32, vx: 0, vy: 0, dir: 1, isPlayer: true,
              onGround: false, coyote: 0, buffer: 0, inv: 0, anim: 0,
              power: 'none', powerFlash: 0 };
@@ -1333,7 +1552,8 @@ function loadStage(def, index) {
     else if (ch === 'X') {
       boss = { x:c*T, y:r*T-48, w:64, h:80, vx:1.4, vy:0, onGround:false,
                hitWall:false, hp:bossHp, maxHp:bossHp, inv:0, alive:true,
-               jumpCd:110, dead:0, drunk: !!def.bossDrunk, homeX:c*T, homeY:r*T-48 };
+               jumpCd:110, dead:0, drunk: !!def.bossDrunk, golden: !!def.bossGolden,
+               breathCd:150, breath:0, homeX:c*T, homeY:r*T-48 };
       // 足場が地続きな範囲を調べて、そこから出られないようにする（穴に落ちて詰むのを防ぐ）
       const gr = r + 1;
       let lo = c, hi = c;
@@ -1530,6 +1750,7 @@ function updatePlay() {
   // --- ボス
   if (boss && boss.alive) updateBoss();
   else if (boss && boss.dead > 0) boss.dead--;
+  updateFires();
 
   // --- ジャーキー
   for (const j of jerkies) {
@@ -1606,8 +1827,33 @@ function updateBoss() {
   if (b.drunk) speed *= 1 + Math.sin(tick * 0.05) * 0.45;      // 千鳥足でふらつく
   b.vx = (p.x + p.w / 2 < b.x + b.w / 2) ? -speed : speed;
 
+  // ゴールデンレトリバーは足を止めて炎を吐く
+  if (b.golden) {
+    if (b.breath > 0) {
+      b.breath--;
+      b.vx = 0;                                        // 溜め〜発射中は動かない
+      const mouthY = b.y + 26;
+      const dir = b.faceDir || -1;
+      const mouthX = dir < 0 ? b.x - 6 : b.x + b.w - 6;
+      if (b.breath > 24) {
+        // 溜め：口元に火の粉が集まる
+        if (tick % 3 === 0) spawnSparkle(mouthX + 9, mouthY + 6, C.fireB);
+      } else if (b.breath % 6 === 0) {
+        fires.push({ x:mouthX, y:mouthY + Math.floor(Math.random() * 8) - 4,
+                     w:22, h:22, vx:dir * 5.2, life:110 });
+        SFX.fire();
+      }
+    } else {
+      b.faceDir = (p.x + p.w / 2 < b.x + b.w / 2) ? -1 : 1;
+      if (--b.breathCd <= 0) {
+        b.breath = 60;                                 // 溜め36 + 発射24
+        b.breathCd = 190 - (b.maxHp - b.hp) * 22;      // 追い詰めるほど連射が速い
+      }
+    }
+  }
+
   b.jumpCd--;
-  if (b.jumpCd <= 0 && b.onGround) {
+  if (b.jumpCd <= 0 && b.onGround && !(b.golden && b.breath > 0)) {
     b.vy = -13; b.jumpCd = 150 - (3 - b.hp) * 30;
   }
   b.vy = Math.min(MAX_FALL, b.vy + GRAV);
@@ -1640,6 +1886,35 @@ function updateBoss() {
   }
 }
 
+// ボスの吐いた炎：まっすぐ飛び、壁に当たるか寿命で消える
+function updateFires() {
+  if (!fires.length) return;
+  const p = player;
+  for (const f of fires) {
+    f.x += f.vx;
+    f.life--;
+    if (tick % 2 === 0) spawnSparkle(f.x + 11, f.y + 14, Math.random() < 0.5 ? C.fireB : C.fireC);
+
+    const midRow = Math.floor((f.y + f.h / 2) / T);
+    const edge = Math.floor((f.vx < 0 ? f.x : f.x + f.w) / T);
+    if (isBlock(tileAt(edge, midRow))) f.life = 0;           // 壁に当たって砕ける
+    if (f.x < -80 || f.x > LEVEL_W + 80) f.life = 0;
+
+    if (f.life > 0 && overlap(p, f)) {
+      if (powerTimer > 0) {
+        f.life = 0;                                          // 無敵モードなら焼き払う
+        for (let i = 0; i < 8; i++) spawnSparkle(f.x + 11, f.y + 11, C.fireA);
+      } else if (p.inv <= 0) {
+        const before = lives;
+        damage(false);
+        f.life = 0;
+        if (lives !== before || p.power === 'none') runBossHit = true;
+      }
+    }
+  }
+  fires = fires.filter(f => f.life > 0);
+}
+
 function hitBoss(n) {
   const b = boss;
   if (b.hp <= 0) return;
@@ -1649,6 +1924,7 @@ function hitBoss(n) {
   SFX.bossHit();
   if (b.hp <= 0) {
     b.alive = false; b.dead = 60;
+    fires = [];                                    // 残った炎で事故らないように消す
     score += 2000;
     for (let i = 0; i < 40; i++) spawnSparkle(b.x + 28, b.y + 40, 'hsl(' + (i * 9) + ',100%,68%)');
     flashMsg('ボス撃破！ ご主人のもとへ！');
@@ -1783,9 +2059,23 @@ function drawWorld() {
   if (boss && (boss.alive || boss.dead > 0)) {
     const f = Math.floor(tick / 8) % 2;
     const flash = boss.inv > 0 && Math.floor(tick / 4) % 2 === 0;
+    // ゴールデンは炎を吐く間は足を止めるので、向きは vx ではなく faceDir で決める
+    const facingRight = boss.golden ? boss.faceDir > 0 : boss.vx > 0;
+    const paint = (x, y) => boss.golden
+      ? drawGolden(x, y, 3, f, flash, !boss.alive, boss.breath > 0)
+      : drawBoss(x, y, 3, f, flash, !boss.alive, boss.drunk);
     ctx.save();
-    if (boss.vx > 0) { ctx.translate(ox + boss.x + boss.w + 10, boss.y - 10); ctx.scale(-1, 1); drawBoss(0, 0, 3, f, flash, !boss.alive, boss.drunk); }
-    else drawBoss(ox + boss.x - 10, boss.y - 10, 3, f, flash, !boss.alive, boss.drunk);
+    if (facingRight) { ctx.translate(ox + boss.x + boss.w + 10, boss.y - 10); ctx.scale(-1, 1); paint(0, 0); }
+    else paint(ox + boss.x - 10, boss.y - 10);
+    ctx.restore();
+  }
+
+  // ボスの炎（進行方向にのびるように向きを反転）
+  for (const fl of fires) {
+    if (fl.x + 60 < cam || fl.x - 60 > cam + VW) continue;
+    ctx.save();
+    if (fl.vx > 0) { ctx.translate(ox + fl.x + 24, fl.y); ctx.scale(-1, 1); drawFlame(0, 0, 2, tick); }
+    else drawFlame(ox + fl.x, fl.y, 2, tick);
     ctx.restore();
   }
 
@@ -1803,6 +2093,7 @@ function drawWorld() {
     const walking = Math.abs(p.vx) > 0.4 && p.onGround;
     const f = !p.onGround ? 1 : (walking ? Math.floor(p.anim) % 2 : 0);
     const stretch = p.power === 'long' ? 1.85 : 1;         // ロングフォルは胴がぐっと伸びる
+    const legEx = p.power === 'spring' ? 7 : 0;             // ばねの足は脚がぐんと伸びる
     const flash = p.powerFlash > 0 && Math.floor(tick / 3) % 2 === 0;
     if (p.power !== 'none') {                              // パワーアップ中のオーラ
       const pw = POWERS[p.power], gx = ox + p.x + 22, gy = p.y + 16, rad = 42;
@@ -1812,11 +2103,11 @@ function drawWorld() {
     }
     ctx.save();
     if (p.dir < 0) {
-      ctx.translate(ox + p.x + p.w + 4, p.y); ctx.scale(-stretch, 1);
-      drawDog(0, 0, 2, f, flash, powerTimer > 0);
+      ctx.translate(ox + p.x + p.w + 4, p.y - legEx * 2); ctx.scale(-stretch, 1);
+      drawDog(0, 0, 2, f, flash, powerTimer > 0, legEx);
     } else {
-      ctx.translate(ox + p.x + p.w + 4, p.y); ctx.scale(stretch, 1);
-      drawDog(-(p.w + 8) / 1, 0, 2, f, flash, powerTimer > 0);
+      ctx.translate(ox + p.x + p.w + 4, p.y - legEx * 2); ctx.scale(stretch, 1);
+      drawDog(-(p.w + 8) / 1, 0, 2, f, flash, powerTimer > 0, legEx);
     }
     ctx.restore();
   }
@@ -1885,7 +2176,9 @@ function drawHUD() {
     ctx.textAlign = 'center';
     ctx.fillStyle = 'rgba(20,16,12,0.6)'; ctx.fillRect(VW / 2 - 130, 48, 260, 30);
     ctx.fillStyle = '#ffffff'; ctx.font = 'bold 13px "Hiragino Maru Gothic ProN", sans-serif';
-    ctx.fillText(boss.drunk ? '酔っぱらいのロン毛ヒゲおやぶん' : 'ロン毛のヒゲおやぶん', VW / 2, 61);
+    ctx.fillText(boss.golden ? '炎を吐く金色の大王犬'
+                 : boss.drunk ? '酔っぱらいのロン毛ヒゲおやぶん'
+                 : 'ロン毛のヒゲおやぶん', VW / 2, 61);
     const n = boss.maxHp, bw = Math.min(36, 220 / n - 6);
     for (let i = 0; i < n; i++) {
       ctx.fillStyle = i < boss.hp ? '#ff4d5e' : 'rgba(255,255,255,0.2)';
@@ -2454,7 +2747,7 @@ function jerkyPile(x, y, n, t) {
 }
 
 const ENDING = [
-{ lines: ['ロン毛のヒゲおやぶんは倒れた。', 'フォルは、まっすぐご主人のもとへ駆けていった。'],
+{ lines: ['炎を吐く金色の大王犬は、ぱたりと伏せた。', 'フォルは、まっすぐご主人のもとへ駆けていった。'],
   draw(t) {
     TH = THEMES.night; curStage = null;
     drawBackground(260);
