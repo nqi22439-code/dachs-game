@@ -212,20 +212,15 @@ open index.html
 
 ## アクセス解析
 
-公開版のアクセス数は **Cloudflare Web Analytics**（無料・Cookie なし）で計測します。
-`index.html` の `<head>` にあるトークンを設定すると有効になります。
+公開版のアクセス数は **Cloudflare Web Analytics**（無料・Cookie なし）で計測しています。
+ホスト名 `nqi22439-code.github.io` で登録済みで、`index.html` の `<head>` にある
+`CF_BEACON_TOKEN` にサイトトークンを設定してあります。
 
-```js
-const CF_BEACON_TOKEN = '';   // ここにサイトトークンを貼る
-```
+数字は [Cloudflare ダッシュボード](https://dash.cloudflare.com/) → **Analytics & Logs**
+→ **Web Analytics** で確認できます。ページビュー数・訪問数・国・リファラー・
+ブラウザ／OS・表示速度が見られ、パスごとの内訳も出ます。
 
-**有効にする手順**
-
-1. [Cloudflare ダッシュボード](https://dash.cloudflare.com/) → **Analytics & Logs** → **Web Analytics**
-2. **Add a site** でホスト名 `nqi22439-code.github.io` を登録
-3. 表示された JS スニペットから `token` の値をコピーし、上の `CF_BEACON_TOKEN` に貼って push
-
-空文字のままならスクリプトを一切読み込まないので、未設定でも動作に影響はありません。
+トークンを空文字にすればスクリプトを読み込まなくなり、計測を止められます。
 
 **注意点**
 
