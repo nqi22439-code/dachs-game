@@ -210,6 +210,30 @@ open index.html
 
 ---
 
+## アクセス解析
+
+公開版のアクセス数は **Cloudflare Web Analytics**（無料・Cookie なし）で計測します。
+`index.html` の `<head>` にあるトークンを設定すると有効になります。
+
+```js
+const CF_BEACON_TOKEN = '';   // ここにサイトトークンを貼る
+```
+
+**有効にする手順**
+
+1. [Cloudflare ダッシュボード](https://dash.cloudflare.com/) → **Analytics & Logs** → **Web Analytics**
+2. **Add a site** でホスト名 `nqi22439-code.github.io` を登録
+3. 表示された JS スニペットから `token` の値をコピーし、上の `CF_BEACON_TOKEN` に貼って push
+
+空文字のままならスクリプトを一切読み込まないので、未設定でも動作に影響はありません。
+
+**注意点**
+
+- 広告ブロッカー（uBlock、Brave など）を使っている訪問者は計測されません
+- 計測結果は Cloudflare ダッシュボードでのみ確認でき、ゲーム画面には表示されません
+
+---
+
 ## 技術メモ
 
 - 素の HTML / CSS / JavaScript（Canvas 2D）のみ。ライブラリ・外部アセットなし

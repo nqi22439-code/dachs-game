@@ -78,6 +78,21 @@
   }
   @media (orientation: portrait) { body.touch #rotate { display: block; } }
 </style>
+
+<!-- アクセス解析（Cloudflare Web Analytics）
+     Cloudflare ダッシュボードの Web Analytics で
+     ホスト名 nqi22439-code.github.io を登録し、発行されたサイトトークンを
+     下の CF_BEACON_TOKEN に貼ると計測が始まる。空のままなら何も読み込まない。 -->
+<script>
+  const CF_BEACON_TOKEN = '';
+  if (CF_BEACON_TOKEN) {
+    const beacon = document.createElement('script');
+    beacon.type = 'module';                       // 古いブラウザで実行させない
+    beacon.defer = true;
+    beacon.src = 'https://static.cloudflareinsights.com/beacon.min.js?token=' + CF_BEACON_TOKEN;
+    document.head.appendChild(beacon);
+  }
+</script>
 </head>
 <body>
 <div id="wrap">
